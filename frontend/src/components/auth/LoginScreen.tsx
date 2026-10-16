@@ -79,6 +79,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onEntrar }) => {
         >
           <LogIn className="h-4 w-4" /> {enviando ? 'Entrando…' : 'Entrar'}
         </button>
+
+        <div className="pt-3 border-t border-white/10 text-xs">
+          <p className="mb-2 text-slate-400 font-medium">Accesos rápidos de evaluación:</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => { setUsuario('admin'); setClave('admin') }}
+              className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-2 text-left text-sky-300 hover:bg-sky-500/20 transition cursor-pointer"
+            >
+              <div className="font-semibold text-sky-200">👑 Admin</div>
+              <div className="text-[11px] text-slate-400 font-mono">admin / admin</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setUsuario('ana'); setClave('1234') }}
+              className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 text-left text-purple-300 hover:bg-purple-500/20 transition cursor-pointer"
+            >
+              <div className="font-semibold text-purple-200">👤 Usuario</div>
+              <div className="text-[11px] text-slate-400 font-mono">ana / 1234</div>
+            </button>
+          </div>
+        </div>
       </form>
     </div>
   )
