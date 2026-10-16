@@ -199,7 +199,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
             required
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
-            placeholder="Ej. Sobrecalentamiento crítico de condensador en Aula Hamilton"
+            placeholder="Ej. El videobeam de Cosmos echa humo"
             className="w-full px-3.5 py-2.5 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
           />
         </div>

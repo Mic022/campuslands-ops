@@ -111,7 +111,7 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
             />
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block font-mono">
-            RN-02: El cupo máximo de préstamos activos por persona lo valida el servidor.
+            RN-06: El cupo máximo de préstamos activos por persona lo valida el servidor.
           </span>
         </div>
 
