@@ -72,7 +72,6 @@ export interface Reserva {
   espacioId: string
   espacioNombre: string
   solicitanteNombre: string
-  solicitanteEmail?: string
   motivo?: string
   /** ISO local, p. ej. 2026-10-16T14:00:00 */
   horaInicio: string
@@ -88,7 +87,6 @@ export interface Prestamo {
   recursoNombre: string
   recursoCodigo: string
   solicitanteNombre: string
-  solicitanteEmail?: string
   fechaPrestamo: string
   fechaEstimadaDevolucion: string
   fechaDevolucionReal?: string

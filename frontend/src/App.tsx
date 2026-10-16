@@ -11,6 +11,8 @@ import {
   EstadoRecurso
 } from './types/domain'
 import { ApiError, apiClient } from './services/apiClient'
+import { alExpirarSesion, guardarSesion, leerSesion, Sesion } from './services/sesion'
+import { LoginScreen } from './components/auth/LoginScreen'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { StarfieldBackground } from './components/ui/StarfieldBackground'
@@ -26,12 +28,32 @@ import { ResourceLoanModal } from './components/features/resources/ResourceLoanM
 import { IncidentBoard } from './components/features/incidents/IncidentBoard'
 import { IncidentReportModal } from './components/features/incidents/IncidentReportModal'
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
+import { DataLoadReport } from './components/features/datos/DataLoadReport'
 import { AvisoError, EstadoCarga } from './components/ui/EstadoDatos'
 import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
 
 type Fuente = 'reglas' | 'espacios' | 'recursos' | 'reservas' | 'prestamos' | 'incidencias'
 
+/** Sin sesión se muestra el login; un 401 del backend devuelve aquí. */
 export default function App() {
+  const [sesion, setSesion] = useState<Sesion | null>(leerSesion)
+
+  useEffect(() => alExpirarSesion(() => setSesion(null)) as () => void, [])
+
+  if (!sesion) return <LoginScreen onEntrar={setSesion} />
+  return (
+    <Campus
+      key={sesion.usuario.usuario}
+      sesion={sesion}
+      onSalir={() => {
+        guardarSesion(null)
+        setSesion(null)
+      }}
+    />
+  )
+}
+
+function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>('3d-twin')
 
   // Datos principales: todos vienen del backend (no hay datos de demostración).
@@ -214,7 +236,13 @@ export default function App() {
     i => i.prioridad === 'critica' && i.estado !== 'resuelta'
   ).length
 
-  const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible').length
+  // Disponible = estado 'disponible' y sin incidencia abierta bloqueante (RN-04; la decisión final es del backend).
+  const espacioBloqueado = (id: string) =>
+    incidencias.some(
+      i => i.espacioId === id && i.estado !== 'resuelta' && !!i.prioridad &&
+        !!config?.prioridades_bloqueantes.includes(i.prioridad)
+    )
+  const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible' && !espacioBloqueado(e.id)).length
   const capacidadTotal = espacios.reduce((t, e) => t + e.capacidad, 0)
   const reservasActivas = reservas.filter(r => r.estado === 'activa').length
   const prestamosActivos = prestamos.filter(p => p.estado === 'activo').length
@@ -248,6 +276,8 @@ export default function App() {
           setIsReportOpen(true)
         }}
         incidenciasCriticasCount={incidenciasCriticasCount}
+        usuario={sesion.usuario}
+        onSalir={onSalir}
       />
 
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -272,7 +302,7 @@ export default function App() {
                 Selecciona una sala para ver su estado y reservarla. Las reservas se guardan en el servidor y el plano se actualiza solo.
               </p>
             </div>
-            {/* Plano 3D de Torre Zenith · Nivel 6 con reservas persistentes (backend /api/nivel6) */}
+            {/* Plano 3D de Torre Zenith · Nivel 6: espacios, reservas, incidencias y recursos del backend */}
             <TorreZenithNivel6 onToast={addToast} />
           </div>
         </div>
@@ -408,6 +438,8 @@ export default function App() {
                     ]}
                   />
                   <JuryRulesInspector config={config} />
+                  {/* Evidencia de la carga de datos oficiales (el endpoint es solo para administradores). */}
+                  {sesion.usuario.rol === 'admin' && <DataLoadReport />}
                 </>
               )}
             </motion.div>

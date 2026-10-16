@@ -35,7 +35,7 @@ export const LevelSummary: React.FC<LevelSummaryProps> = ({ datos, carga, enVivo
           <Building2 className="h-4 w-4 text-cyan-400" />
           <div>
             <p className="text-sm font-bold leading-tight text-white">Torre Zenith</p>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-cyan-400">Nivel 6 · 2560 m²</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-cyan-400">Nivel 6 · datos en vivo</p>
           </div>
         </div>
         {carga === 'error' ? (
@@ -51,7 +51,7 @@ export const LevelSummary: React.FC<LevelSummaryProps> = ({ datos, carga, enVivo
       </div>
 
       <div className="mt-3 grid grid-cols-4 gap-2">
-        <Cifra valor={10} texto="Salas" color="#E2E8F0" />
+        <Cifra valor={r ? r.total : SALAS_GEOMETRIA.length} texto="Salas" color="#E2E8F0" />
         <Cifra valor={n(r?.disponibles)} texto="Disponibles" color={COLOR_ESTADO.disponible} />
         <Cifra valor={n(r?.reservadas)} texto="Reservadas" color={COLOR_ESTADO.reservada} />
         <Cifra valor={n(r?.mantenimiento)} texto="Mantenim." color={COLOR_ESTADO.mantenimiento} />

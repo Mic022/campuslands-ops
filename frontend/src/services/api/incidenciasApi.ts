@@ -90,7 +90,8 @@ export const incidenciasApi = {
   },
 
   /**
-   * Registra una nueva incidencia. Si es crítica/alta, el backend inhabilita el espacio/recurso (RN-04).
+   * Registra la incidencia confirmada. Con prioridad bloqueante, el backend pasa el recurso a
+   * mantenimiento y bloquea recurso y espacio mientras siga abierta (RN-04).
    */
   async crearIncidencia(datos: {
     titulo: string
@@ -100,10 +101,11 @@ export const incidenciasApi = {
     categoria: CategoriaIncidencia
     prioridad: PrioridadIncidencia
     area: AreaResolutora
-    origenTriaje: 'ia' | 'manual'
-    confianzaIA?: number
-    razonamientoIA?: string
+    origenTriaje?: 'ia' | 'manual'
+    propuestaIA?: TriajeIAResponse
   }): Promise<Incidencia> {
+    // El backend decide si el triaje fue 'ia' o 'manual' comparando lo confirmado con la propuesta.
+    const p = datos.propuestaIA
     const i = await post<IncidenciaApi>(ENDPOINTS.INCIDENCIAS.CREAR, {
       titulo: datos.titulo,
       descripcion: datos.descripcion,
@@ -112,9 +114,15 @@ export const incidenciasApi = {
       categoria: datos.categoria,
       prioridad: datos.prioridad,
       area_responsable: datos.area,
-      origen_triaje: datos.origenTriaje,
-      confianza_ia: datos.origenTriaje === 'ia' ? datos.confianzaIA : undefined,
-      justificacion_ia: datos.origenTriaje === 'ia' ? datos.razonamientoIA : undefined
+      propuesta_ia: p
+        ? {
+            categoria: p.categoria,
+            prioridad: p.prioridad,
+            area_responsable: p.area,
+            justificacion: p.razonamiento,
+            confianza: p.confianza
+          }
+        : undefined
     })
     return aIncidencia(i)
   },

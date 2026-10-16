@@ -6,6 +6,12 @@
  */
 
 export const ENDPOINTS = {
+  // Sesión
+  AUTH: {
+    LOGIN: '/auth/login',
+    YO: '/auth/yo',
+  },
+
   // Salud y Configuración de Reglas de Negocio
   HEALTH: '/health',
   CATALOGOS: '/catalogos',
@@ -57,12 +63,4 @@ export const ENDPOINTS = {
     RESOLVER: (id: string | number) => `/incidencias/${id}`,
   },
 
-  // Módulo 01 · Torre Zenith (Gemelo Digital)
-  NIVEL6: {
-    ESTADO: '/nivel6/estado',
-    REGLAS: '/nivel6/reglas',
-    RESERVAS: '/nivel6/reservas',
-    SALAS: '/nivel6/salas',
-    RESERVA_CANCELAR: (id: string | number) => `/nivel6/reservas/${id}/cancelar`,
-  }
 } as const

@@ -1,7 +1,9 @@
 /**
  * Cliente HTTP base para la comunicación con el backend FastAPI (/api).
- * Maneja serialización, captura de errores {codigo, mensaje} y status codes.
+ * Agrega el token de sesión, maneja serialización, errores {codigo, mensaje} y status codes.
+ * Un 401 cierra la sesión (vuelve al login); un 403 se muestra como mensaje.
  */
+import { expirarSesion, leerSesion } from '../sesion'
 
 export class ApiError extends Error {
   codigo: string
@@ -10,6 +12,7 @@ export class ApiError extends Error {
 
   constructor(status: number, codigo: string, mensaje: string, detalles?: { campo: string; mensaje: string }[]) {
     super(mensaje)
+    this.name = 'ApiError'
     this.status = status
     this.codigo = codigo
     this.detalles = detalles
@@ -17,17 +20,23 @@ export class ApiError extends Error {
 }
 
 export async function pedir<T>(ruta: string, init: RequestInit = {}): Promise<T> {
+  const token = leerSesion()?.token
   let res: Response
   try {
     res = await fetch(`/api${ruta}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(init.headers || {}) }
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers || {})
+      }
     })
   } catch {
     throw new ApiError(0, 'RED', 'No hay conexión con el servidor backend.')
   }
 
   const cuerpo = await res.json().catch(() => null)
+  if (res.status === 401 && ruta !== '/auth/login') expirarSesion()
   if (!res.ok) {
     if (!cuerpo || res.status === 502 || res.status === 504) {
       throw new ApiError(res.status, 'RED', 'El servidor backend no está disponible.')

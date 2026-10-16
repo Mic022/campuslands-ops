@@ -1,3 +1,4 @@
+import { esAdmin } from '../../../services/sesion'
 import React, { useState } from 'react'
 import { Incidencia, Espacio, Recurso, ReglasConfig, TriajeIAResponse } from '../../../types/domain'
 import { AITriageAssistant } from './AITriageAssistant'
@@ -226,7 +227,9 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
 
                   {/* Acción de Resolución */}
                   <div className="shrink-0 flex items-center md:flex-col justify-end gap-2 pt-2 md:pt-0">
-                    {!esResuelta ? (
+                    {!esResuelta && !esAdmin() ? (
+                      <span className="text-xs text-slate-400 font-mono">Pendiente · la resuelve un admin</span>
+                    ) : !esResuelta ? (
                       <Button
                         variant="cyan"
                         size="sm"

@@ -1,11 +1,14 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Building2, Laptop, Sparkles, Sliders, Orbit, Siren } from 'lucide-react'
+import { Building2, Laptop, Sparkles, Sliders, Orbit, Siren, LogOut, UserRound } from 'lucide-react'
+import { UsuarioSesion } from '../../services/sesion'
 import { Brand } from './Brand'
 
 export type TabType = '3d-twin' | 'spaces' | 'resources' | 'incidents' | 'jury'
 
 interface NavbarProps {
+  usuario: UsuarioSesion
+  onSalir: () => void
   activeTab: TabType
   onSelectTab: (tab: TabType) => void
   onOpenReportModal: () => void
@@ -13,6 +16,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
+  usuario,
+  onSalir,
   activeTab,
   onSelectTab,
   onOpenReportModal,
@@ -82,6 +87,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Siren className="h-4 w-4" />
               <span className="hidden sm:inline">Reportar incidente</span>
+            </button>
+            <span className="hidden items-center gap-2 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-300 md:flex">
+              <UserRound className="h-3.5 w-3.5 text-sky-300" />
+              {usuario.nombre}
+              <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-slate-400">{usuario.rol}</span>
+            </span>
+            <button
+              onClick={onSalir}
+              title="Cerrar sesión"
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-sky-300/40 hover:text-white cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>

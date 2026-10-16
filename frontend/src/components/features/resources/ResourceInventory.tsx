@@ -1,3 +1,4 @@
+import { esAdmin } from '../../../services/sesion'
 import React, { useState } from 'react'
 import { Recurso, Prestamo, Incidencia, EstadoRecurso, ReglasConfig } from '../../../types/domain'
 import { Badge } from '../../ui/Badge'
@@ -48,6 +49,8 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
   })
 
   const prestamosActivos = prestamos.filter(p => p.estado === 'activo')
+  // Acciones de admin (el backend igual responde 403 a un usuario): devoluciones y cambios de estado.
+  const admin = esAdmin()
 
   const handleTransicion = async (recursoId: string, nuevoEstado: EstadoRecurso) => {
     try {
@@ -103,11 +106,11 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </div>
                   <h4 className="text-sm font-bold text-white mt-2">{p.recursoNombre}</h4>
                   <p className="text-xs text-slate-300 mt-1">
-                    Solicitante: <strong className="text-white">{p.solicitanteNombre}</strong> ({p.solicitanteEmail})
+                    Solicitante: <strong className="text-white">{p.solicitanteNombre}</strong>
                   </p>
                 </div>
 
-                <div className="mt-3.5 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                {admin && <div className="mt-3.5 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                   <button
                     onClick={() => handleDevolucion(p.id, 'danado')}
                     disabled={submittingId === p.id}
@@ -123,7 +126,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   >
                     Devolver (Óptimo)
                   </button>
-                </div>
+                </div>}
               </div>
             ))}
           </div>
@@ -209,7 +212,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
 
                 <div className="mt-3.5 text-xs text-slate-300 space-y-1.5">
                   <p>
-                    <span className="text-slate-400">Ubicación:</span> {rec.espacioActualNombre || 'Almacén Central TI'}
+                    <span className="text-slate-400">Ubicación:</span> {rec.espacioActualNombre || 'Sin espacio asignado'}
                   </p>
                   {rec.solicitanteActual && (
                     <p className="text-amber-300 font-mono text-[11px]">
@@ -234,7 +237,8 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
 
               {/* Acciones de la Máquina de Estados RN-03 */}
               <div className="mt-5 pt-3.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
-                {rec.estado === 'disponible' && (
+                {/* Visible también si no está disponible: así se ve en vivo el rechazo del backend (RN-03 / RN-04). */}
+                {rec.estado !== 'baja' && (
                   <Button
                     variant="cyan"
                     size="sm"
@@ -245,7 +249,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </Button>
                 )}
 
-                {(rec.estado === 'disponible' || rec.estado === 'danado') && (
+                {admin && (rec.estado === 'disponible' || rec.estado === 'danado') && (
                   <button
                     onClick={() => handleTransicion(rec.id, 'mantenimiento')}
                     disabled={submittingId === rec.id}
@@ -256,7 +260,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </button>
                 )}
 
-                {rec.estado === 'mantenimiento' && (
+                {admin && rec.estado === 'mantenimiento' && (
                   <button
                     onClick={() => handleTransicion(rec.id, 'disponible')}
                     disabled={submittingId === rec.id}
@@ -267,7 +271,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </button>
                 )}
 
-                {rec.estado === 'danado' && (
+                {admin && rec.estado === 'danado' && (
                   <button
                     onClick={() => handleTransicion(rec.id, 'baja')}
                     disabled={submittingId === rec.id}

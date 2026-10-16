@@ -80,7 +80,7 @@ export type Distribucion =
 
 export interface GeometriaSala {
   id: SalaId
-  /** Nombre de respaldo si el backend aún no respondió (la fuente es backend/app/config/salas.py). */
+  /** Nombre de respaldo si el backend aún no respondió (la fuente es GET /api/espacios). */
   nombre: string
   color: string
   poligono: P[]
@@ -88,6 +88,7 @@ export interface GeometriaSala {
   /** Lados que coinciden con la fachada: no se levanta muro interior. */
   ladosFachada?: number[]
   distribucion: Distribucion
+  /** Solo visual: cuántos puestos se dibujan. El aforo real siempre viene de GET /api/espacios. */
   capacidad: number
   /** Desplazamiento (unidades, eje z) de la etiqueta para que no choque con salas vecinas. */
   desplazarEtiqueta?: number
@@ -97,8 +98,9 @@ const POLI_AUDITORIO: P[] = [...arco(CENTRO_ARCO, RADIO_ARCO, 180, 90, 12), [975
 
 export const SALAS_GEOMETRIA: GeometriaSala[] = [
   {
-    id: 'salon-sputnik',
-    nombre: 'Salón Sputnik',
+    // En el plano arquitectónico figura como "Sputnik"; en los datos oficiales es Spooki (38).
+    id: 'spooki',
+    nombre: 'Spooki',
     color: '#C79BEA',
     poligono: [[38, 222], [188, 222], [188, 300], [170, 318], [38, 318]],
     puertas: [{ lado: 2, en: 0.5, ancho: 1.0 }],
@@ -107,8 +109,8 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     capacidad: 30
   },
   {
-    id: 'salon-artemis',
-    nombre: 'Salón Artemis',
+    id: 'artemis',
+    nombre: 'Artemis',
     color: '#F2B35E',
     poligono: [[38, 322], [166, 322], [188, 344], [188, 418], [38, 418]],
     puertas: [{ lado: 1, en: 0.5, ancho: 1.0 }],
@@ -117,8 +119,8 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     capacidad: 32
   },
   {
-    id: 'salon-apolo',
-    nombre: 'Salón Apolo',
+    id: 'apolo',
+    nombre: 'Apolo',
     color: '#6EC6E6',
     poligono: [[194, 222], [345, 222], [345, 318], [216, 318], [194, 296]],
     puertas: [{ lado: 3, en: 0.5, ancho: 1.0 }, { lado: 2, en: 0.15, ancho: 1.0 }],
@@ -137,26 +139,34 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     capacidad: 20
   },
   {
-    id: 'salon-cosmos',
-    nombre: 'Salón Cosmos',
+    id: 'cosmos',
+    nombre: 'Cosmos',
     color: '#86C77A',
     poligono: [[648, 352], [742, 352], [742, 425], [648, 425]],
     puertas: [{ lado: 1, en: 0.3, ancho: 1.0 }],
     distribucion: { tipo: 'reuniones', eje: 'x', pantalla: 'w' },
     capacidad: 12
   },
+  // Sala Verde: dos cubículos de 6 personas que se reservan por separado (datos oficiales).
   {
-    id: 'sala-verde',
-    nombre: 'Sala Verde',
+    id: 'sala-verde-1',
+    nombre: 'Sala Verde 1',
     color: '#3DD13D',
-    poligono: [[680, 478], [720, 478], [720, 540], [680, 540]],
-    puertas: [
-      { lado: 3, en: 1 / 6, ancho: 0.8 },
-      { lado: 3, en: 3 / 6, ancho: 0.8 },
-      { lado: 3, en: 5 / 6, ancho: 0.8 }
-    ],
-    distribucion: { tipo: 'cabinas', cabinas: 3, eje: 'z', fondo: 'e' },
-    capacidad: 6
+    poligono: [[680, 478], [720, 478], [720, 509], [680, 509]],
+    puertas: [{ lado: 3, en: 0.5, ancho: 0.8 }],
+    distribucion: { tipo: 'reuniones', eje: 'x', pantalla: 'e' },
+    capacidad: 4,
+    desplazarEtiqueta: -0.5
+  },
+  {
+    id: 'sala-verde-2',
+    nombre: 'Sala Verde 2',
+    color: '#3DD13D',
+    poligono: [[680, 509], [720, 509], [720, 540], [680, 540]],
+    puertas: [{ lado: 3, en: 0.5, ancho: 0.8 }],
+    distribucion: { tipo: 'reuniones', eje: 'x', pantalla: 'e' },
+    capacidad: 4,
+    desplazarEtiqueta: 0.5
   },
   {
     id: 'auditorio',
@@ -169,8 +179,8 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     capacidad: 60
   },
   {
-    id: 'sala-azul',
-    nombre: 'Sala Azul',
+    id: 'azul',
+    nombre: 'Azul',
     color: '#2F6FE4',
     poligono: [[862, 229], [884, 229], [884, 288], [862, 288]],
     puertas: [{ lado: 2, en: 0.5, ancho: 0.8 }],
@@ -179,8 +189,8 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     desplazarEtiqueta: -0.7
   },
   {
-    id: 'sala-blanca',
-    nombre: 'Sala Blanca',
+    id: 'blanca',
+    nombre: 'Blanca',
     color: '#F1F5F9',
     poligono: [[887, 229], [934, 229], [934, 288], [887, 288]],
     puertas: [{ lado: 2, en: 0.3, ancho: 0.9 }],
@@ -188,14 +198,26 @@ export const SALAS_GEOMETRIA: GeometriaSala[] = [
     capacidad: 6,
     desplazarEtiqueta: 0.7
   },
+  // Sala Amarilla: dos cubículos de 6 personas que se reservan por separado (datos oficiales).
   {
-    id: 'sala-amarilla',
-    nombre: 'Sala Amarilla',
+    id: 'sala-amarilla-1',
+    nombre: 'Sala Amarilla 1',
     color: '#F5D90A',
-    poligono: [[918, 380], [980, 380], [980, 410], [918, 410]],
-    puertas: [{ lado: 0, en: 0.25, ancho: 0.8 }, { lado: 0, en: 0.75, ancho: 0.8 }],
-    distribucion: { tipo: 'cabinas', cabinas: 2, eje: 'x', fondo: 's' },
-    capacidad: 2
+    poligono: [[918, 380], [949, 380], [949, 410], [918, 410]],
+    puertas: [{ lado: 0, en: 0.5, ancho: 0.8 }],
+    distribucion: { tipo: 'reuniones', eje: 'z', pantalla: 's' },
+    capacidad: 4,
+    desplazarEtiqueta: -0.8
+  },
+  {
+    id: 'sala-amarilla-2',
+    nombre: 'Sala Amarilla 2',
+    color: '#F5D90A',
+    poligono: [[949, 380], [980, 380], [980, 410], [949, 410]],
+    puertas: [{ lado: 0, en: 0.5, ancho: 0.8 }],
+    distribucion: { tipo: 'reuniones', eje: 'z', pantalla: 's' },
+    capacidad: 4,
+    desplazarEtiqueta: 0.8
   }
 ]
 

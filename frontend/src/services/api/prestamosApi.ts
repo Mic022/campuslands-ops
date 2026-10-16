@@ -41,7 +41,7 @@ export const prestamosApi = {
   },
 
   /**
-   * Registra un nuevo préstamo. El servidor valida cupo máximo por solicitante y disponibilidad (RN-02, RN-03).
+   * Registra un nuevo préstamo. El servidor valida cupo máximo por solicitante y disponibilidad (RN-06, RN-03, RN-04).
    * `fechaEstimadaDevolucion` en formato ISO local YYYY-MM-DDTHH:MM
    */
   async crearPrestamo(datos: {

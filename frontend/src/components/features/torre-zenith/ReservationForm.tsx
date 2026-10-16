@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarCheck, CheckCircle2, Clock, Users } from 'lucide
 import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
 import { ReservaApiError, reservasApi } from '../../../services/reservasApi'
+import { esAdmin, nombreSesion } from '../../../services/sesion'
 import { ReglasReserva, ReservaPrivada, ReservaPublica, SalaEstado, SalaId } from '../../../types/torreZenith'
 import { Muestra, aMin, deMin, fechaISO, fechaLarga, horaHM } from './comun'
 import { ReservationCalendar } from './ReservationCalendar'
@@ -54,7 +55,8 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   onReservada,
   onVerMisReservas
 }) => {
-  const [c, setC] = useState<Campos>({ solicitante: '', salaId: '', fecha: '', inicio: '', fin: '', asistentes: '1', motivo: '' })
+  // Un usuario solo reserva a su nombre (el backend lo exige); el admin puede reservar por otra persona.
+  const [c, setC] = useState<Campos>({ solicitante: nombreSesion(), salaId: '', fecha: '', inicio: '', fin: '', asistentes: '1', motivo: '' })
   const [agenda, setAgenda] = useState<ReservaPublica[]>([])
   const [agendaError, setAgendaError] = useState(false)
   const [intentado, setIntentado] = useState(false)
@@ -147,7 +149,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
       onReservada(r.reserva, r.sala_nombre)
     } catch (err) {
       setErrorServidor(err instanceof ReservaApiError ? err : new ReservaApiError(0, 'ERR', 'Error inesperado.'))
-      if (err instanceof ReservaApiError && err.codigo === 'RES-06') cargarAgenda(c.salaId, c.fecha)
+      if (err instanceof ReservaApiError && err.codigo === 'RN-01') cargarAgenda(c.salaId, c.fecha)
     } finally {
       setEnviando(false)
     }
@@ -195,7 +197,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={etiqueta} htmlFor="rz-nombre">Nombre del usuario</label>
-            <input id="rz-nombre" className={entrada} value={c.solicitante} onChange={cambiar('solicitante')} placeholder="Nombre y apellido" maxLength={80} autoComplete="name" />
+            <input id="rz-nombre" className={entrada} value={c.solicitante} onChange={cambiar('solicitante')} placeholder="Nombre y apellido" maxLength={80} autoComplete="name" readOnly={!esAdmin()} />
             {msg('solicitante')}
           </div>
           <div>

@@ -39,6 +39,7 @@ interface IncidentReportModalProps {
     razonamientoIA: string
     sugerenciaAccion: string
     origenTriaje: 'ia' | 'manual'
+    propuestaIA?: TriajeIAResponse
   }) => Promise<void>
 }
 
@@ -62,6 +63,10 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   const [razonamientoIA, setRazonamientoIA] = useState<string>('Clasificación manual')
   const [sugerenciaAccion, setSugerenciaAccion] = useState<string>('Inspección de rutina')
   const [origenTriaje, setOrigenTriaje] = useState<'ia' | 'manual'>('manual')
+  // Propuesta original de la IA: el backend la compara con lo confirmado para saber si fue 'ia' o 'manual'.
+  const [propuestaIA, setPropuestaIA] = useState<TriajeIAResponse | null>(null)
+  const [revisado, setRevisado] = useState(false)
+  const [errorIA, setErrorIA] = useState<string | null>(null)
   const [analizandoIA, setAnalizandoIA] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -76,14 +81,25 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
       setRazonamientoIA(triajePrecargado.resultado.razonamiento)
       setSugerenciaAccion(triajePrecargado.resultado.sugerenciaAccion || '')
       setOrigenTriaje('ia')
+      setPropuestaIA(triajePrecargado.resultado)
+      setRevisado(false)
     }
   }, [triajePrecargado])
+
+  const ajustada =
+    !!propuestaIA &&
+    (propuestaIA.categoria !== categoria || propuestaIA.prioridad !== prioridad || propuestaIA.area !== area)
+  const exigeRevision = !!propuestaIA && propuestaIA.requiereRevisionHumana && !ajustada && !revisado
 
   const handleAnalizarConIA = async () => {
     if (!descripcion.trim()) return
     try {
       setAnalizandoIA(true)
-      const res = await apiClient.triajeConIA(descripcion)
+      setErrorIA(null)
+      const res = await apiClient.triajeConIA(descripcion, {
+        espacioId: espacioId || undefined,
+        recursoId: recursoId || undefined
+      })
       if (!titulo.trim()) {
         setTitulo(descripcion.slice(0, 45) + (descripcion.length > 45 ? '...' : ''))
       }
@@ -94,6 +110,13 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
       setRazonamientoIA(res.razonamiento)
       setSugerenciaAccion(res.sugerenciaAccion || '')
       setOrigenTriaje('ia')
+      setPropuestaIA(res)
+      setRevisado(false)
+    } catch (err) {
+      // IA caída o sin configurar (503): se sigue con triaje manual, nunca con una respuesta inventada.
+      setPropuestaIA(null)
+      setOrigenTriaje('manual')
+      setErrorIA(err instanceof Error ? err.message : 'IA no disponible.')
     } finally {
       setAnalizandoIA(false)
     }
@@ -101,7 +124,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!titulo.trim() || !descripcion.trim()) return
+    if (!titulo.trim() || !descripcion.trim() || exigeRevision) return
 
     try {
       setLoading(true)
@@ -116,13 +139,16 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
         confianzaIA,
         razonamientoIA,
         sugerenciaAccion,
-        origenTriaje
+        origenTriaje: propuestaIA && !ajustada ? 'ia' : 'manual',
+        propuestaIA: propuestaIA ?? undefined
       })
       onClose()
       setTitulo('')
       setDescripcion('')
       setEspacioId('')
       setRecursoId('')
+      setPropuestaIA(null)
+      setOrigenTriaje('manual')
     } finally {
       setLoading(false)
     }
@@ -173,7 +199,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
             required
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
-            placeholder="Ej. Sobrecalentamiento crítico de condensador en Aula Hamilton"
+            placeholder="Ej. El videobeam de Cosmos echa humo"
             className="w-full px-3.5 py-2.5 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
           />
         </div>
@@ -279,29 +305,51 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
         </div>
 
         {/* Advertencia RN-04 si es crítica */}
-        {espacioId && (prioridad === 'critica' || prioridad === 'alta') && (
+        {(espacioId || recursoId) && (prioridad === 'critica' || prioridad === 'alta') && (
           <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/60 flex items-start gap-2.5 text-xs text-rose-200 shadow-lg shadow-rose-950/40">
             <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
               <strong className="block text-rose-300 font-bold uppercase">
-                Efecto RN-04: Inhabilitación Inmediata de Espacio
+                Efecto RN-04 al confirmar
               </strong>
               <p className="mt-0.5">
-                Al emitir esta incidencia con severidad {prioridad.toUpperCase()}, el espacio pasará automáticamente a estado INHABILITADO, bloqueando preventivamente cualquier reserva.
+                Con severidad {prioridad.toUpperCase()} (si está entre las prioridades bloqueantes), el recurso pasa a mantenimiento y el
+                espacio y el recurso quedan bloqueados para nuevas reservas y préstamos hasta que la incidencia se resuelva.
               </p>
             </div>
           </div>
         )}
 
+        {errorIA && (
+          <div role="alert" className="p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/50 text-xs text-amber-200">
+            <strong className="block text-amber-300">IA no disponible</strong>
+            {errorIA} Clasifica manualmente y confirma; quedará registrado como triaje manual.
+          </div>
+        )}
+
+        {propuestaIA && ajustada && (
+          <p className="text-xs text-sky-300">Clasificación ajustada manualmente: se registrará como triaje manual.</p>
+        )}
+
+        {propuestaIA && propuestaIA.requiereRevisionHumana && !ajustada && (
+          <label className="flex items-start gap-2 p-3 rounded-2xl border border-amber-500/50 bg-amber-950/40 text-xs text-amber-200 cursor-pointer">
+            <input type="checkbox" checked={revisado} onChange={e => setRevisado(e.target.checked)} className="mt-0.5" />
+            <span>
+              <strong className="block text-amber-300">Confianza baja: requiere revisión humana</strong>
+              Revisé la categoría, la prioridad y el área propuestas por la IA.
+            </span>
+          </label>
+        )}
+
         {/* Diagnóstico IA si está activo */}
-        {origenTriaje === 'ia' && (
+        {propuestaIA && (
           <div className="p-3.5 rounded-2xl bg-purple-950/50 border border-purple-500/40 text-xs text-purple-200 flex items-start gap-2.5">
             <Bot className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold block text-purple-300">
-                Diagnóstico IA (Confianza: {(confianzaIA * 100).toFixed(0)}%):
+                Propuesta de la IA (confianza: {(propuestaIA.confianza * 100).toFixed(0)}%):
               </span>
-              <p className="text-slate-200 italic mt-0.5">"{razonamientoIA}"</p>
+              <p className="text-slate-200 italic mt-0.5">"{propuestaIA.razonamiento}"</p>
             </div>
           </div>
         )}

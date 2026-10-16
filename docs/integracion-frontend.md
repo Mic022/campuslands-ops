@@ -158,16 +158,19 @@ POST  /api/incidencias/triaje
 
 POST  /api/incidencias
       body {titulo, descripcion, espacio_id?, recurso_id?, categoria, prioridad, area_responsable,
-            origen_triaje: "ia"|"manual", confianza_ia?, justificacion_ia?}
+            propuesta_ia?: <la respuesta de /triaje, tal cual>}
       → 201 Incidencia
+      El backend decide origen_triaje: "ia" si categoria/prioridad/area coinciden con propuesta_ia,
+      "manual" si la persona las ajustó o no usó la IA.
       Efectos (en una transacción, con auditar()):
-        - si trae recurso_id y el recurso está fijo en un espacio, guardar también ese espacio_id
+        - si trae recurso_id y el recurso está fijo en un espacio, guarda también ese espacio_id
           (así "el videobeam de Cosmos echa humo" bloquea el recurso Y el aula, RN-04)
-        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y hay recurso disponible → recurso a "mantenimiento"
+        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y el recurso puede pasar a mantenimiento → "mantenimiento"
+          (si está prestado no se toca: RN-04 lo bloquea igual por la incidencia abierta)
 
 PATCH /api/incidencias/{id}
-      body {estado: "en_proceso"|"resuelta"}
-      → 200 Incidencia   (resuelta → resuelta_en = ahora)
+      body {estado: "abierta"|"en_proceso"|"resuelta", observacion?: str}
+      → 200 Incidencia   (resuelta → resuelta_en = ahora; una resuelta no se reabre → 409 RN-08)
       El recurso NO vuelve solo a "disponible": se pasa explícitamente con PATCH /api/recursos/{id}/estado.
 ```
 
@@ -216,7 +219,6 @@ GET  /api/auth/yo      → {usuario, nombre, rol}
 - [ ] Pestaña de Datos con el reporte de carga (`GET /api/datos/reporte`)
 - [ ] Historial de un recurso (`GET /api/auditoria?entidad=recurso&id=...`)
 - [ ] Cambiar `MAX_HORAS_RESERVA` en `reglas.py` → la UI lo refleja sin tocar el frontend
-- [ ] Login con `admin` y con `ana`: el usuario no ve acciones de admin y recibe 403 si las intenta
 - [ ] `npm run build` sin errores y versiones fijadas en `package.json`
 - [ ] Nada de `demoData`, `rulesEngine`, `triajeConIA`, modo demo ni métricas inventadas
 

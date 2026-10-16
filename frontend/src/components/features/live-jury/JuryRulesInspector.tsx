@@ -20,54 +20,81 @@ interface JuryRulesInspectorProps {
 
 export const JuryRulesInspector: React.FC<JuryRulesInspectorProps> = ({ config }) => {
   const reglasCards = [
+    // Mismos códigos que devuelve el backend ({codigo, mensaje}) y que documenta el README.
     {
       codigo: 'RN-01',
-      titulo: 'Control de Aforo y Horarios de Espacios',
-      descripcion: `Valida que la reserva respete el aforo máximo con factor (${Math.round(config.factor_aforo * 100)}%), el horario operativo (${config.hora_apertura}:00 - ${config.hora_cierre}:00) y un máximo de ${config.max_horas_reserva}h consecutivas sin solapes.`,
-      icono: <Users className="w-5 h-5 text-emerald-400" />,
+      titulo: 'Sin reservas solapadas',
+      descripcion: 'Un espacio no admite dos reservas activas que se crucen. Intervalos [inicio, fin): una reserva puede empezar justo cuando termina otra.',
+      icono: <ShieldCheck className="w-5 h-5 text-emerald-400" />,
       acento: 'border-emerald-500/40 bg-emerald-950/20',
       tagColor: 'emerald' as const,
-      valores: [
-        { label: 'Factor Aforo', valor: `${Math.round(config.factor_aforo * 100)}%` },
-        { label: 'Horario', valor: `${config.hora_apertura}h – ${config.hora_cierre}h` },
-        { label: 'Máx. Horas', valor: `${config.max_horas_reserva} horas` }
-      ]
+      valores: [{ label: 'Archivo', valor: 'rules/espacios.py' }]
     },
     {
       codigo: 'RN-02',
-      titulo: 'Límite de Hardware por Solicitante',
-      descripcion: `Restringe el número de préstamos activos simultáneos a un máximo de ${config.max_prestamos_activos} equipos por persona (identificado por solicitante).`,
-      icono: <Laptop className="w-5 h-5 text-purple-400" />,
-      acento: 'border-purple-500/40 bg-purple-950/20',
-      tagColor: 'purple' as const,
-      valores: [
-        { label: 'Cupo Máximo', valor: `${config.max_prestamos_activos} equipos` },
-        { label: 'Criterio', valor: 'Por solicitante' }
-      ]
+      titulo: 'Aforo del espacio',
+      descripcion: `Los asistentes no pueden superar el aforo oficial × factor (${Math.round(config.factor_aforo * 100)} %).`,
+      icono: <Users className="w-5 h-5 text-emerald-400" />,
+      acento: 'border-emerald-500/40 bg-emerald-950/20',
+      tagColor: 'emerald' as const,
+      valores: [{ label: 'Factor aforo', valor: `${Math.round(config.factor_aforo * 100)} %` }]
     },
     {
       codigo: 'RN-03',
-      titulo: 'Máquina de Estados de Inventario',
-      descripcion: 'Control estricto de transiciones: Disponible ⇄ Prestado. No permite transiciones ilegales directas a Dañado o Mantenimiento sin devolución o reporte.',
+      titulo: 'Máquina de estados de recursos',
+      descripcion: 'Un equipo solo cambia de estado por transiciones permitidas (disponible → prestado → disponible/dañado → mantenimiento → disponible). No se presta lo que no está disponible.',
       icono: <ShieldCheck className="w-5 h-5 text-cyan-400" />,
       acento: 'border-cyan-500/40 bg-cyan-950/20',
       tagColor: 'sky' as const,
-      valores: [
-        { label: 'Transición', valor: 'Estricta' },
-        { label: 'Validación', valor: 'En servidor' }
-      ]
+      valores: [{ label: 'Archivo', valor: 'config/catalogos.py' }]
     },
     {
       codigo: 'RN-04',
-      titulo: 'Inhabilitación Preventiva por Incidencias',
-      descripcion: `Cualquier incidencia abierta con prioridad bloqueante (${config.prioridades_bloqueantes.join(', ')}) inhabilita automáticamente el espacio o equipo impidiendo nuevas reservas o préstamos.`,
+      titulo: 'Bloqueo integrador por incidencias',
+      descripcion: `No se reserva ni presta lo que está fuera de servicio o tiene una incidencia abierta de prioridad ${config.prioridades_bloqueantes.join(' o ')}. Al confirmarla sobre un equipo, este pasa a mantenimiento y bloquea también su sala.`,
       icono: <AlertTriangle className="w-5 h-5 text-rose-400" />,
       acento: 'border-rose-500/40 bg-rose-950/20',
       tagColor: 'rose' as const,
+      valores: [{ label: 'Bloqueantes', valor: config.prioridades_bloqueantes.join(', ') }]
+    },
+    {
+      codigo: 'RN-05',
+      titulo: 'Horario y duración',
+      descripcion: `Reservas entre ${config.hora_apertura}:00 y ${config.hora_cierre}:00, de máximo ${config.max_horas_reserva} h y nunca en el pasado.`,
+      icono: <ShieldCheck className="w-5 h-5 text-emerald-400" />,
+      acento: 'border-emerald-500/40 bg-emerald-950/20',
+      tagColor: 'emerald' as const,
       valores: [
-        { label: 'Bloqueantes', valor: config.prioridades_bloqueantes.join(', ') },
-        { label: 'Efecto', valor: 'Bloqueo inmediato' }
+        { label: 'Horario', valor: `${config.hora_apertura}h – ${config.hora_cierre}h` },
+        { label: 'Máx.', valor: `${config.max_horas_reserva} h` }
       ]
+    },
+    {
+      codigo: 'RN-06',
+      titulo: 'Préstamos activos por persona',
+      descripcion: `Una persona puede tener como máximo ${config.max_prestamos_activos} préstamos activos al mismo tiempo.`,
+      icono: <Laptop className="w-5 h-5 text-purple-400" />,
+      acento: 'border-purple-500/40 bg-purple-950/20',
+      tagColor: 'purple' as const,
+      valores: [{ label: 'Cupo', valor: `${config.max_prestamos_activos} equipos` }]
+    },
+    {
+      codigo: 'RN-07',
+      titulo: 'Devolución válida',
+      descripcion: 'Solo se devuelve un préstamo activo, en una fecha no anterior a la salida y a un estado permitido del equipo.',
+      icono: <Laptop className="w-5 h-5 text-purple-400" />,
+      acento: 'border-purple-500/40 bg-purple-950/20',
+      tagColor: 'purple' as const,
+      valores: [{ label: 'Archivo', valor: 'rules/recursos.py' }]
+    },
+    {
+      codigo: 'RN-08',
+      titulo: 'Ciclo de vida de incidencias',
+      descripcion: 'Abierta → en proceso → resuelta. Una incidencia resuelta no se reabre: se reporta una nueva.',
+      icono: <AlertTriangle className="w-5 h-5 text-rose-400" />,
+      acento: 'border-rose-500/40 bg-rose-950/20',
+      tagColor: 'rose' as const,
+      valores: [{ label: 'Archivo', valor: 'services/incidencias.py' }]
     },
     {
       codigo: 'RN-IA',

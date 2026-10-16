@@ -40,11 +40,20 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
   const [filtroPiso, setFiltroPiso] = useState<'todos' | 1 | 2>('todos')
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'disponible' | 'mantenimiento' | 'inhabilitado'>('todos')
 
+  // RN-04 (solo para mostrar; quien bloquea es el backend): incidencia abierta con prioridad
+  // en las prioridades bloqueantes vigentes (GET /api/reglas).
+  const incidenciaBloqueante = (esp: Espacio) =>
+    incidencias.find(
+      i => i.espacioId === esp.id && i.estado !== 'resuelta' && !!i.prioridad &&
+        config.prioridades_bloqueantes.includes(i.prioridad)
+    )
+  const bloqueado = (esp: Espacio) => esp.estado === 'inhabilitado' || !!incidenciaBloqueante(esp)
+
   // Métricas de Espacios
   const totalCapacidad = espacios.reduce((acc, e) => acc + e.capacidad, 0)
-  const disponiblesCount = espacios.filter(e => e.estado === 'disponible').length
+  const disponiblesCount = espacios.filter(e => e.estado === 'disponible' && !bloqueado(e)).length
   const mantenimientoCount = espacios.filter(e => e.estado === 'mantenimiento').length
-  const inhabilitadosCount = espacios.filter(e => e.estado === 'inhabilitado').length
+  const inhabilitadosCount = espacios.filter(bloqueado).length
 
   const espaciosFiltrados = espacios.filter(esp => {
     const matchBusqueda = esp.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -52,7 +61,9 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
                           (esp.equipamiento?.some(eq => eq.toLowerCase().includes(busqueda.toLowerCase())) ?? false)
     const matchTipo = filtroTipo === 'todos' || esp.tipo === filtroTipo
     const matchPiso = filtroPiso === 'todos' || (esp.piso ?? 1) === filtroPiso
-    const matchEstado = filtroEstado === 'todos' || esp.estado === filtroEstado
+    const matchEstado =
+      filtroEstado === 'todos' ||
+      (filtroEstado === 'inhabilitado' ? bloqueado(esp) : esp.estado === filtroEstado && !bloqueado(esp))
     return matchBusqueda && matchTipo && matchPiso && matchEstado
   })
 
@@ -152,7 +163,7 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
         {espaciosFiltrados.map(esp => {
           const incActiva = esp.incidenciaActivaId
             ? incidencias.find(i => i.id === esp.incidenciaActivaId)
-            : null
+            : incidenciaBloqueante(esp) ?? null
 
           const reservasEspacio = reservas.filter(r => r.espacioId === esp.id && r.estado === 'activa')
           const aforoMaximo = Math.floor(esp.capacidad * config.factor_aforo)

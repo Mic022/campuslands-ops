@@ -12,6 +12,7 @@
  */
 
 export * from './baseClient'
+export * from './authApi'
 export * from './reglasApi'
 export * from './espaciosApi'
 export * from './recursosApi'

@@ -10,6 +10,7 @@ import { Espacio } from '../../types/domain'
 import { obtenerLayout3D } from '../../data/layout3D'
 import { ENDPOINTS } from '../endpoints'
 import { get, post, patch } from './baseClient'
+import type { RecursoApi } from './recursosApi'
 
 export interface EspacioApi {
   id: string
@@ -27,7 +28,7 @@ let espaciosCache: EspacioApi[] = []
 export const nombreEspacio = (id: string | null) =>
   espaciosCache.find(e => e.id === id)?.nombre ?? id ?? undefined
 
-export const aEspacio = (e: EspacioApi): Espacio => {
+export const aEspacio = (e: EspacioApi, recursos: RecursoApi[] = []): Espacio => {
   const layout = obtenerLayout3D(e.id)
   return {
     id: e.id,
@@ -38,7 +39,8 @@ export const aEspacio = (e: EspacioApi): Espacio => {
     aforoPermitido: e.aforo_permitido ?? e.aforo,
     ubicacion: e.ubicacion ?? undefined,
     piso: layout.piso,
-    equipamiento: layout.equipamiento,
+    // Equipamiento real: los recursos registrados en este espacio (GET /api/recursos).
+    equipamiento: recursos.filter(r => r.espacio_id === e.id).map(r => r.nombre || r.tipo),
     coordenadas3D: layout.coordenadas3D,
     dimensiones3D: layout.dimensiones3D,
     colorTema: layout.colorTema
@@ -48,14 +50,18 @@ export const aEspacio = (e: EspacioApi): Espacio => {
 export const espaciosApi = {
   /** Lista todos los espacios oficiales con aforo y estado */
   async getEspacios(): Promise<Espacio[]> {
-    espaciosCache = await get<EspacioApi[]>(ENDPOINTS.ESPACIOS.LISTAR)
-    return espaciosCache.map(aEspacio)
+    const [espacios, recursos] = await Promise.all([
+      get<EspacioApi[]>(ENDPOINTS.ESPACIOS.LISTAR),
+      get<RecursoApi[]>(ENDPOINTS.RECURSOS.LISTAR)
+    ])
+    espaciosCache = espacios
+    return espacios.map(e => aEspacio(e, recursos))
   },
 
   /** Obtiene un espacio por su ID / slug */
   async obtenerEspacio(id: string): Promise<Espacio> {
     const e = await get<EspacioApi>(ENDPOINTS.ESPACIOS.OBTENER(id))
-    return aEspacio(e)
+    return aEspacio(e, await get<RecursoApi[]>(`${ENDPOINTS.RECURSOS.LISTAR}?espacio_id=${id}`))
   },
 
   /** Crea un nuevo espacio (si el backend lo permite) */
