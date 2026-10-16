@@ -105,3 +105,8 @@ def get_reglas():
 from app.api import datos  # noqa: E402
 
 app.include_router(datos.router)
+
+from app.api import espacios, recursos  # noqa: E402  (P2)
+
+app.include_router(espacios.router)
+app.include_router(recursos.router)
