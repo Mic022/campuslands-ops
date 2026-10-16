@@ -1,87 +1,51 @@
-# backend/app/services/incidencias.py
-"""
-Servicio de incidencias: orquesta el triaje de IA, persistencia y RN-04.
-"""
-from sqlmodel import Session
-from app.ai.triaje import clasificar_incidencia
-from app.ai.esquemas import ClasificacionIA
-from app.config.catalogos import EstadoIncidencia, OrigenTriaje, EstadoRecurso
+# Agrega esto al final de backend/app/services/incidencias.py
+
 from app.models import Incidencia, ahora
-from app.schemas.recursos import CambioEstadoRecurso
-from app.services.recursos import cambiar_estado
-from app.rules.base import ReglaNegocioError
+from app.repositories.auditoria import auditar
+from app.rules.base import NoEncontradoError
+from app.config.catalogos import EstadoIncidencia
 
-
-def ejecutar_triaje_ia(descripcion: str, espacio_id: str | None, recurso_id: str | None) -> ClasificacionIA | None:
-    """Orquesta el triaje de IA con contexto."""
-    contexto = f"Espacio ID: {espacio_id}, Recurso ID: {recurso_id}" if (espacio_id or recurso_id) else "Sin contexto específico"
-    return clasificar_incidencia(descripcion, contexto)
-
-
-def aplicar_bloqueo_rn04(db: Session, recurso_id: str | None, prioridad: str, actor: str = "sistema_incidencia"):
-    """
-    RN-04: Una incidencia crítica/alta confirmada sobre un recurso lo pasa a mantenimiento.
-    Manejo de máquina de estados: si está 'prestado', no puede ir directo a 'mantenimiento'.
-    """
-    if not recurso_id or prioridad not in {"critica", "alta"}:
-        return
-    
-    try:
-        # INTENTO 1: Transición directa (Funciona si el recurso está 'disponible')
-        cambiar_estado(
-            db, 
-            recurso_id, 
-            CambioEstadoRecurso(estado=EstadoRecurso.mantenimiento, motivo="Bloqueo por incidencia crítica/alta (RN-04)"), 
-            actor=actor
-        )
-    except ReglaNegocioError:
-        # INTENTO 2: Si falla, es porque la máquina de estados lo rechaza (ej: está 'prestado').
-        # Un incidente crítico en un recurso prestado implica que se dañó durante su uso.
-        # Transición válida en cascada: prestado -> danado -> mantenimiento
-        cambiar_estado(
-            db, 
-            recurso_id, 
-            CambioEstadoRecurso(estado=EstadoRecurso.danado, motivo="Daño reportado por incidencia crítica (RN-04)"), 
-            actor=actor
-        )
-        cambiar_estado(
-            db, 
-            recurso_id, 
-            CambioEstadoRecurso(estado=EstadoRecurso.mantenimiento, motivo="Paso a mantenimiento tras daño (RN-04)"), 
-            actor=actor
-        )
-
-
-def confirmar_incidencia(
+def cambiar_estado_incidencia(
     db: Session, 
-    titulo: str, 
-    descripcion: str, 
-    espacio_id: str | None, 
-    recurso_id: str | None, 
-    triaje: ClasificacionIA, 
+    incidencia_id: int, 
+    nuevo_estado: str, 
+    actor: str = "usuario", 
+    observacion: str | None = None
+) -> Incidencia:
+    """Cambia el estado de una incidencia y registra la auditoría."""
+    incidencia = db.get(Incidencia, incidencia_id)
+    if not incidencia:
+        raise NoEncontradoError(f"No existe la incidencia con ID {incidencia_id}.")
+    
+    estado_anterior = incidencia.estado
+    # Aseguramos que sea un string válido del enum
+    estado_str = nuevo_estado.value if hasattr(nuevo_estado, 'value') else nuevo_estado
+    incidencia.estado = estado_str
+    
+    detalle = observacion or f"Cambio de estado a {estado_str}"
+    auditar(db, "incidencia", str(incidencia_id), "cambiar_estado", estado_anterior, estado_str, actor, detalle)
+    
+    db.commit()
+    db.refresh(incidencia)
+    return incidencia
+
+
+def resolver_incidencia(
+    db: Session, 
+    incidencia_id: int, 
+    solucion: str, 
     actor: str = "usuario"
 ) -> Incidencia:
-    """Crea la incidencia con la clasificación confirmada y aplica RN-04 si aplica."""
-    incidencia = Incidencia(
-        titulo=titulo,
-        descripcion=descripcion,
-        categoria=triaje.categoria.value,
-        prioridad=triaje.prioridad.value,
-        area_responsable=triaje.area_responsable.value,
-        estado=EstadoIncidencia.abierta.value,
-        espacio_id=espacio_id,
-        recurso_id=recurso_id,
-        origen_triaje=OrigenTriaje.ia.value,
-        confianza_ia=triaje.confianza,
-        justificacion_ia=triaje.justificacion,
-        creada_en=ahora()
-    )
+    """Marca una incidencia como resuelta, guarda la solución y la fecha."""
+    incidencia = db.get(Incidencia, incidencia_id)
+    if not incidencia:
+        raise NoEncontradoError(f"No existe la incidencia con ID {incidencia_id}.")
     
-    db.add(incidencia)
-    db.flush()  # Para obtener el ID antes del commit
+    estado_anterior = incidencia.estado
+    incidencia.estado = EstadoIncidencia.resuelta.value
+    incidencia.resuelta_en = ahora()
     
-    # Aplicar RN-04 (bloquear recurso si es crítica/alta)
-    aplicar_bloqueo_rn04(db, recurso_id, triaje.prioridad.value, actor=f"incidencia_{incidencia.id}")
+    auditar(db, "incidencia", str(incidencia_id), "resolver", estado_anterior, EstadoIncidencia.resuelta.value, actor, solucion)
     
     db.commit()
     db.refresh(incidencia)
