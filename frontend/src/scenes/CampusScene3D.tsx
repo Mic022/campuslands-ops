@@ -304,7 +304,7 @@ export const CampusScene3D: React.FC<CampusScene3DProps> = ({
                     RN-04: Acceso Restringido por {incidenciaActiva.codigo}
                   </strong>
                   <p className="text-[11px] text-rose-200/90 mt-0.5">
-                    {incidenciaActiva.titulo} · Prioridad: {incidenciaActiva.prioridad.toUpperCase()}
+                    {incidenciaActiva.titulo} · Prioridad: {(incidenciaActiva.prioridad || 'abierta').toUpperCase()}
                   </p>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export const CampusScene3D: React.FC<CampusScene3DProps> = ({
 
             {/* Equipamiento Instalado */}
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {selectedEspacio.equipamiento.map((item, idx) => (
+              {(selectedEspacio.equipamiento || []).map((item, idx) => (
                 <span
                   key={idx}
                   className="text-[11px] bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl text-slate-300"

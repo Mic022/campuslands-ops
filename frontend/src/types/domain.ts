@@ -45,6 +45,12 @@ export interface Espacio {
   ubicacion?: string
   /** Solo para pintar: incidencia abierta con prioridad bloqueante. Quien bloquea es el backend (RN-04). */
   incidenciaActivaId?: string
+  // Presentación y geometría visual (layout3D.ts)
+  piso?: number
+  equipamiento?: string[]
+  coordenadas3D?: [number, number, number]
+  dimensiones3D?: [number, number, number]
+  colorTema?: string
 }
 
 export interface Recurso {
@@ -57,6 +63,8 @@ export interface Recurso {
   espacioActualId?: string
   espacioActualNombre?: string
   solicitanteActual?: string
+  observaciones?: string
+  fechaUltimoMantenimiento?: string
 }
 
 export interface Reserva {
@@ -64,6 +72,8 @@ export interface Reserva {
   espacioId: string
   espacioNombre: string
   solicitanteNombre: string
+  solicitanteEmail?: string
+  motivo?: string
   /** ISO local, p. ej. 2026-10-16T14:00:00 */
   horaInicio: string
   horaFin: string
@@ -78,6 +88,7 @@ export interface Prestamo {
   recursoNombre: string
   recursoCodigo: string
   solicitanteNombre: string
+  solicitanteEmail?: string
   fechaPrestamo: string
   fechaEstimadaDevolucion: string
   fechaDevolucionReal?: string
@@ -99,6 +110,7 @@ export interface Incidencia {
   estado: EstadoIncidencia
   confianzaIA?: number
   razonamientoIA?: string
+  sugerenciaAccion?: string
   origenTriaje: OrigenTriaje
   timestamp: string
 }
@@ -120,6 +132,14 @@ export interface TriajeIAResponse {
   area: AreaResolutora
   confianza: number
   razonamiento: string
+  sugerenciaAccion?: string
   /** Lo decide el backend con UMBRAL_CONFIANZA_IA. */
   requiereRevisionHumana: boolean
+}
+
+export interface ResultadoValidacion {
+  valido: boolean
+  codigo: string
+  mensaje: string
+  detalles?: Record<string, unknown>
 }

@@ -74,7 +74,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
       setArea(triajePrecargado.resultado.area)
       setConfianzaIA(triajePrecargado.resultado.confianza)
       setRazonamientoIA(triajePrecargado.resultado.razonamiento)
-      setSugerenciaAccion(triajePrecargado.resultado.sugerenciaAccion)
+      setSugerenciaAccion(triajePrecargado.resultado.sugerenciaAccion || '')
       setOrigenTriaje('ia')
     }
   }, [triajePrecargado])
@@ -92,7 +92,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
       setArea(res.area)
       setConfianzaIA(res.confianza)
       setRazonamientoIA(res.razonamiento)
-      setSugerenciaAccion(res.sugerenciaAccion)
+      setSugerenciaAccion(res.sugerenciaAccion || '')
       setOrigenTriaje('ia')
     } finally {
       setAnalizandoIA(false)
@@ -194,7 +194,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
                 <option value="">-- Ninguno / Áreas comunes --</option>
                 {espacios.map(e => (
                   <option key={e.id} value={e.id}>
-                    {e.nombre} (Piso {e.piso})
+                    {e.nombre} (Piso {e.piso ?? 1})
                   </option>
                 ))}
               </select>

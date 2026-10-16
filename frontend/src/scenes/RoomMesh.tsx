@@ -37,11 +37,14 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
     }
   }[espacio.estado]
 
+  const dim = espacio.dimensiones3D || [2.5, 1.2, 2.2]
+  const pos = espacio.coordenadas3D || [0, 0.6, 0]
+
   // Animación del pulso holográfico y la baliza
   useFrame((state) => {
     const time = state.clock.elapsedTime
     if (beaconRef.current) {
-      beaconRef.current.position.y = (espacio.dimensiones3D[1] / 2) + 0.25 + Math.sin(time * 3) * 0.08
+      beaconRef.current.position.y = (dim[1] / 2) + 0.25 + Math.sin(time * 3) * 0.08
     }
 
     if (meshRef.current) {
@@ -57,7 +60,7 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
   })
 
   return (
-    <group position={espacio.coordenadas3D}>
+    <group position={pos}>
       {/* Malla volumétrica de la sala */}
       <mesh
         ref={meshRef}
@@ -73,7 +76,7 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
         castShadow
         receiveShadow
       >
-        <boxGeometry args={espacio.dimensiones3D} />
+        <boxGeometry args={dim} />
         <meshPhysicalMaterial
           color={hovered || isSelected ? statusColors.base : '#0A1226'}
           emissive={statusColors.emissive}
@@ -89,7 +92,7 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
 
       {/* Aristas Neón Iridiscentes */}
       <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(...espacio.dimensiones3D)]} />
+        <edgesGeometry args={[new THREE.BoxGeometry(...dim)]} />
         <lineBasicMaterial
           color={isSelected ? '#00F5FF' : hovered ? '#FFFFFF' : statusColors.line}
           linewidth={isSelected ? 2 : 1}
@@ -99,14 +102,14 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
       </lineSegments>
 
       {/* Baliza Holográfica Levitante */}
-      <mesh ref={beaconRef} position={[0, espacio.dimensiones3D[1] / 2 + 0.25, 0]}>
+      <mesh ref={beaconRef} position={[0, dim[1] / 2 + 0.25, 0]}>
         <octahedronGeometry args={[0.16, 0]} />
         <meshBasicMaterial color={statusColors.hex} wireframe={false} />
       </mesh>
 
       {/* Punto de Luz Focal */}
       <pointLight
-        position={[0, espacio.dimensiones3D[1] / 2 + 0.35, 0]}
+        position={[0, dim[1] / 2 + 0.35, 0]}
         color={statusColors.hex}
         intensity={espacio.estado === 'inhabilitado' ? 3.5 : hovered ? 2.5 : 1.4}
         distance={3.2}
@@ -115,13 +118,13 @@ export const RoomMesh: React.FC<RoomMeshProps> = ({ espacio, isSelected, onSelec
       {/* Tooltip Drei HTML Futurista */}
       {(hovered || isSelected) && (
         <Html
-          position={[0, espacio.dimensiones3D[1] / 2 + 0.8, 0]}
+          position={[0, dim[1] / 2 + 0.8, 0]}
           center
           distanceFactor={10}
         >
           <div className="pointer-events-none px-3.5 py-2 rounded-xl holo-panel text-white shadow-2xl min-w-[150px] text-center border border-white/20">
             <span className="text-[10px] font-mono tracking-widest text-cyan-400 block uppercase">
-              {espacio.id} · PISO {espacio.piso}
+              {espacio.id} · PISO {espacio.piso ?? 1}
             </span>
             <p className="text-xs font-extrabold text-white mt-0.5 leading-snug">
               {espacio.nombre}

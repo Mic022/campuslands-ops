@@ -49,9 +49,9 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
   const espaciosFiltrados = espacios.filter(esp => {
     const matchBusqueda = esp.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
                           esp.id.toLowerCase().includes(busqueda.toLowerCase()) ||
-                          esp.equipamiento.some(eq => eq.toLowerCase().includes(busqueda.toLowerCase()))
+                          (esp.equipamiento?.some(eq => eq.toLowerCase().includes(busqueda.toLowerCase())) ?? false)
     const matchTipo = filtroTipo === 'todos' || esp.tipo === filtroTipo
-    const matchPiso = filtroPiso === 'todos' || esp.piso === filtroPiso
+    const matchPiso = filtroPiso === 'todos' || (esp.piso ?? 1) === filtroPiso
     const matchEstado = filtroEstado === 'todos' || esp.estado === filtroEstado
     return matchBusqueda && matchTipo && matchPiso && matchEstado
   })
@@ -203,7 +203,7 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
                     Equipamiento:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {esp.equipamiento.slice(0, 3).map((eq, idx) => (
+                    {(esp.equipamiento || []).slice(0, 3).map((eq, idx) => (
                       <span
                         key={idx}
                         className="text-[11px] bg-white/5 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-lg"
@@ -211,9 +211,9 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
                         {eq}
                       </span>
                     ))}
-                    {esp.equipamiento.length > 3 && (
+                    {(esp.equipamiento?.length ?? 0) > 3 && (
                       <span className="text-[11px] text-slate-500 py-0.5 px-1">
-                        +{esp.equipamiento.length - 3} más
+                        +{(esp.equipamiento?.length ?? 0) - 3} más
                       </span>
                     )}
                   </div>

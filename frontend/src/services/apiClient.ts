@@ -78,21 +78,31 @@ interface TriajeApi {
   justificacion: string; confianza: number; requiere_revision: boolean
 }
 
+import { obtenerLayout3D } from '../data/layout3D'
+
 // Caché ligera de nombres para completar relaciones (espacio de una reserva, recurso de un préstamo).
 let espaciosCache: EspacioApi[] = []
 let recursosCache: RecursoApi[] = []
 const nombreEspacio = (id: string | null) => espaciosCache.find(e => e.id === id)?.nombre ?? id ?? undefined
 const recursoPorId = (id: string) => recursosCache.find(r => r.id === id)
 
-const aEspacio = (e: EspacioApi): Espacio => ({
-  id: e.id,
-  nombre: e.nombre,
-  tipo: e.tipo,
-  estado: e.estado,
-  capacidad: e.aforo,
-  aforoPermitido: e.aforo_permitido ?? e.aforo,
-  ubicacion: e.ubicacion ?? undefined
-})
+const aEspacio = (e: EspacioApi): Espacio => {
+  const layout = obtenerLayout3D(e.id)
+  return {
+    id: e.id,
+    nombre: e.nombre,
+    tipo: e.tipo,
+    estado: e.estado,
+    capacidad: e.aforo,
+    aforoPermitido: e.aforo_permitido ?? e.aforo,
+    ubicacion: e.ubicacion ?? undefined,
+    piso: layout.piso,
+    equipamiento: layout.equipamiento,
+    coordenadas3D: layout.coordenadas3D,
+    dimensiones3D: layout.dimensiones3D,
+    colorTema: layout.colorTema
+  }
+}
 
 const aReserva = (r: ReservaApi): Reserva => ({
   id: String(r.id),

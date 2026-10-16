@@ -126,7 +126,7 @@ export const SceneFallback2D: React.FC<SceneFallback2DProps> = ({
                   Capacidad: <strong className="text-white">{esp.capacidad} pax</strong>
                 </span>
                 <span className="text-[11px] font-mono text-slate-400">
-                  {esp.equipamiento.length} ítems inst.
+                  {(esp.equipamiento?.length ?? 0)} ítems inst.
                 </span>
               </div>
 
@@ -135,7 +135,7 @@ export const SceneFallback2D: React.FC<SceneFallback2DProps> = ({
                 <div className="mt-3.5 p-2.5 rounded-xl bg-rose-950/70 border border-rose-500/50 flex items-start gap-2 text-xs text-rose-200">
                   <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
                   <span className="text-[11px] font-semibold leading-tight">
-                    RN-04: Bloqueado por {incActiva.codigo} ({incActiva.prioridad.toUpperCase()})
+                    RN-04: Bloqueado por {incActiva.codigo} ({(incActiva.prioridad || 'abierta').toUpperCase()})
                   </span>
                 </div>
               )}

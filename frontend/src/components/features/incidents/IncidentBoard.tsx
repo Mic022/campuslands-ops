@@ -150,7 +150,7 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
                       </span>
 
                       <Badge
-                        label={inc.prioridad}
+                        label={inc.prioridad || 'abierta'}
                         variant={
                           inc.prioridad === 'critica'
                             ? 'rose'
@@ -180,7 +180,7 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
                       {inc.origenTriaje === 'ia' && (
                         <span className="flex items-center gap-1.5 text-[10px] font-mono bg-purple-950/80 border border-purple-500/40 text-purple-300 px-2.5 py-0.5 rounded-lg">
                           <Bot className="w-3.5 h-3.5 text-purple-400" />
-                          <span>IA {(inc.confianzaIA * 100).toFixed(0)}%</span>
+                          <span>IA {((inc.confianzaIA ?? 0) * 100).toFixed(0)}%</span>
                         </span>
                       )}
                     </div>
@@ -209,17 +209,17 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
                       )}
                       <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-xl border border-white/10">
                         <Wrench className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Área: <strong className="text-slate-200 capitalize">{inc.area.replace('_', ' ')}</strong></span>
+                        <span>Área: <strong className="text-slate-200 capitalize">{(inc.area || 'sin asignar').replace('_', ' ')}</strong></span>
                       </div>
                     </div>
 
-                    {/* Sugerencia de la IA */}
-                    {inc.sugerenciaAccion && (
+                    {/* Sugerencia o Justificación de la IA */}
+                    {(inc.sugerenciaAccion || inc.razonamientoIA) && (
                       <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-xs text-cyan-200">
                         <strong className="text-cyan-400 block mb-0.5 font-semibold">
-                          Acción Recomendada por IA:
+                          {inc.sugerenciaAccion ? 'Acción Recomendada por IA:' : 'Justificación de IA:'}
                         </strong>
-                        {inc.sugerenciaAccion}
+                        {inc.sugerenciaAccion || inc.razonamientoIA}
                       </div>
                     )}
                   </div>

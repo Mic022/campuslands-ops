@@ -1,22 +1,17 @@
 import React, { useState } from 'react'
-import { Recurso, Prestamo, Incidencia, ReglasConfig } from '../../../types/domain'
-import { validarPrestamoRecurso } from '../../../services/rulesEngine'
+import { Recurso } from '../../../types/domain'
 import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
-import { Laptop, User, Mail, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Laptop, User, Calendar, Clock, ShieldAlert } from 'lucide-react'
 
 interface ResourceLoanModalProps {
   isOpen: boolean
   onClose: () => void
   recurso: Recurso | null
-  prestamosActivos: Prestamo[]
-  incidenciasActivas: Incidencia[]
-  config: ReglasConfig
   onSubmitPrestamo: (datos: {
     recursoId: string
     solicitanteNombre: string
-    solicitanteEmail: string
     fechaEstimadaDevolucion: string
   }) => Promise<void>
 }
@@ -25,54 +20,39 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
   isOpen,
   onClose,
   recurso,
-  prestamosActivos,
-  incidenciasActivas,
-  config,
   onSubmitPrestamo
 }) => {
+  const hoyStr = new Date().toISOString().slice(0, 10)
   const [solicitanteNombre, setSolicitanteNombre] = useState('')
-  const [solicitanteEmail, setSolicitanteEmail] = useState('')
-  const [fechaDevolucion, setFechaDevolucion] = useState('18:00')
+  const [fechaDevolucion, setFechaDevolucion] = useState(hoyStr)
+  const [horaDevolucion, setHoraDevolucion] = useState('18:00')
   const [loading, setLoading] = useState(false)
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
 
   if (!recurso) return null
 
-  const validacionActual = validarPrestamoRecurso(
-    recurso,
-    solicitanteEmail,
-    prestamosActivos,
-    incidenciasActivas,
-    config
-  )
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorLocal(null)
 
-    if (!solicitanteNombre.trim() || !solicitanteEmail.trim()) {
-      setErrorLocal('Por favor completa todos los campos del solicitante.')
-      return
-    }
-
-    if (!validacionActual.valido) {
-      setErrorLocal(`[${validacionActual.codigo}] ${validacionActual.mensaje}`)
+    if (!solicitanteNombre.trim()) {
+      setErrorLocal('Por favor ingresa el nombre del solicitante.')
       return
     }
 
     try {
       setLoading(true)
+      const fechaEstimada = `${fechaDevolucion}T${horaDevolucion}`
       await onSubmitPrestamo({
         recursoId: recurso.id,
         solicitanteNombre: solicitanteNombre.trim(),
-        solicitanteEmail: solicitanteEmail.trim(),
-        fechaEstimadaDevolucion: `Hoy a las ${fechaDevolucion}`
+        fechaEstimadaDevolucion: fechaEstimada
       })
       onClose()
       setSolicitanteNombre('')
-      setSolicitanteEmail('')
-    } catch (err: any) {
-      setErrorLocal(err?.message || 'Error al despachar el préstamo.')
+    } catch (err: unknown) {
+      const e = err as { message?: string; mensaje?: string }
+      setErrorLocal(e?.mensaje || e?.message || 'Error al despachar el préstamo.')
     } finally {
       setLoading(false)
     }
@@ -103,6 +83,15 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
           />
         </div>
 
+        {recurso.estado !== 'disponible' && (
+          <div className="p-3 rounded-2xl bg-amber-950/70 border border-amber-500/50 text-xs text-amber-200 flex items-start gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <span>
+              Este equipo no está disponible para préstamo ({recurso.estado}). La solicitud será rechazada por el servidor (RN-03).
+            </span>
+          </div>
+        )}
+
         {/* Datos del Solicitante */}
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1">
@@ -119,57 +108,43 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
               className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">
-            Correo Institucional (@campuslands.edu)
-          </label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="email"
-              required
-              value={solicitanteEmail}
-              onChange={e => setSolicitanteEmail(e.target.value)}
-              placeholder="mateo.salamanca@campuslands.edu"
-              className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-            />
-          </div>
           <span className="text-[11px] text-slate-400 mt-1 block font-mono">
-            RN-02: Máximo {config.max_prestamos_activos} equipos activos por solicitante simultáneamente.
+            RN-02: El cupo máximo de préstamos activos por persona lo valida el servidor.
           </span>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">
-            Hora Estimada de Devolución
-          </label>
-          <input
-            type="time"
-            required
-            value={fechaDevolucion}
-            onChange={e => setFechaDevolucion(e.target.value)}
-            className="w-full px-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
-          />
-        </div>
-
-        {/* Validación Preventiva RN-02 */}
-        <div className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 ${
-          validacionActual.valido
-            ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
-            : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
-        }`}>
-          {validacionActual.valido ? (
-            <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0 mt-0.5" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 text-[#FBBF24] shrink-0 mt-0.5" />
-          )}
+        {/* Fecha y Hora de Devolución Estimada */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <span className="font-mono text-[10px] font-bold block uppercase tracking-wide">
-              {validacionActual.codigo}
-            </span>
-            <p className="mt-0.5">{validacionActual.mensaje}</p>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Fecha de Devolución
+            </label>
+            <div className="relative">
+              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="date"
+                required
+                value={fechaDevolucion}
+                onChange={e => setFechaDevolucion(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Hora de Devolución
+            </label>
+            <div className="relative">
+              <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="time"
+                required
+                value={horaDevolucion}
+                onChange={e => setHoraDevolucion(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
+              />
+            </div>
           </div>
         </div>
 
@@ -192,7 +167,6 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
             type="submit"
             variant="cyan"
             loading={loading}
-            disabled={!validacionActual.valido}
             icon={<Laptop className="w-4 h-4" />}
           >
             Autorizar y Prestar
