@@ -101,6 +101,12 @@ def get_reglas():
     }
 
 
-# Los routers de cada módulo se registran aquí:
-# from app.api import espacios, recursos, incidencias, datos
-# app.include_router(espacios.router)
+# Los routers de cada módulo se registran aquí (una línea por módulo):
+from app.api import datos  # noqa: E402
+
+app.include_router(datos.router)
+
+from app.api import espacios, recursos  # noqa: E402  (P2)
+
+app.include_router(espacios.router)
+app.include_router(recursos.router)
