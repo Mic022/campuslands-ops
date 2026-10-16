@@ -1,0 +1,31 @@
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Base de datos (se regenera con scripts/reset_db.py)
+*.db
+*.sqlite
+*.sqlite3
+
+# Datos oficiales: no se suben hasta que los organizadores lo autoricen
+data/raw/*
+!data/raw/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+
+# Node
+node_modules/
+dist/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
