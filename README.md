@@ -76,7 +76,7 @@ instrucciones; la salida solo puede tomar valores del catálogo; el texto se mue
 | RN-01 | No hay reservas solapadas en el mismo espacio (intervalos `[inicio, fin)`) | `backend/app/rules/espacios.py` · `validar_sin_solapamiento` |
 | RN-02 | Los asistentes no superan el aforo × `FACTOR_AFORO` | `backend/app/rules/espacios.py` · `validar_aforo` |
 | RN-03 | Un recurso solo cambia de estado según la máquina de estados | `backend/app/rules/recursos.py` · `validar_transicion` + `config/catalogos.py` · `TRANSICIONES_RECURSO` |
-| RN-04 | **Integradora:** no se reserva ni presta lo que está fuera de servicio o tiene una incidencia abierta de prioridad bloqueante | `backend/app/rules/bloqueos.py` (en integración) |
+| RN-04 | **Integradora:** no se reserva ni presta lo que está fuera de servicio o tiene una incidencia abierta de prioridad bloqueante | `backend/app/rules/bloqueos.py` · `validar_espacio_operable`, `validar_recurso_operable` |
 | RN-05 | Reservas dentro del horario, con duración máxima y nunca en el pasado | `backend/app/rules/espacios.py` · `validar_horario` |
 | RN-06 | Máximo de préstamos activos por persona | `backend/app/rules/recursos.py` · `validar_limite_prestamos` |
 | RN-07 | Solo se devuelve lo prestado y en una fecha coherente | `backend/app/rules/recursos.py` · `validar_devolucion` |
