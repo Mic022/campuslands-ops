@@ -28,6 +28,8 @@ def main() -> None:
     for archivo in reporte.archivos:
         if "error" in archivo:
             print(f"  ! {archivo['archivo']}: {archivo['error']}")
+        elif "aviso" in archivo:
+            print(f"  - {archivo['archivo']}: {archivo['aviso']}")
     for r in reporte.a_dict()["resumen"]:
         print(f"  {r['entidad']}: {r['leidos']} leídos, {r['cargados']} cargados, {r['en_cuarentena']} en cuarentena")
     print(f"Reporte: {ruta_reporte}")
