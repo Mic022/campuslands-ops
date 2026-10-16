@@ -4,7 +4,7 @@ import { validarPrestamoRecurso } from '../../../services/rulesEngine'
 import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
-import { Laptop, User, Mail, Calendar, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
+import { Laptop, User, Mail, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 interface ResourceLoanModalProps {
   isOpen: boolean
@@ -38,7 +38,6 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
 
   if (!recurso) return null
 
-  // Validación preventiva RN-02
   const validacionActual = validarPrestamoRecurso(
     recurso,
     solicitanteEmail,
@@ -88,9 +87,9 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Estado actual del recurso */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
-          <span className="text-slate-400">Estado de Operatividad:</span>
+        {/* Estado actual */}
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs">
+          <span className="text-slate-400 font-mono">Estado del Equipo:</span>
           <Badge
             label={recurso.estado}
             variant={
@@ -117,7 +116,7 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
               value={solicitanteNombre}
               onChange={e => setSolicitanteNombre(e.target.value)}
               placeholder="Ej. Mateo Salamanca"
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
           </div>
         </div>
@@ -134,10 +133,10 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
               value={solicitanteEmail}
               onChange={e => setSolicitanteEmail(e.target.value)}
               placeholder="mateo.salamanca@campuslands.edu"
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-slate-400 mt-1 block font-mono">
             RN-02: Máximo {config.max_prestamos_activos} equipos activos por solicitante simultáneamente.
           </span>
         </div>
@@ -151,23 +150,23 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
             required
             value={fechaDevolucion}
             onChange={e => setFechaDevolucion(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-400"
+            className="w-full px-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
           />
         </div>
 
         {/* Validación Preventiva RN-02 */}
-        <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+        <div className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 ${
           validacionActual.valido
-            ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
-            : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+            ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
+            : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
         }`}>
           {validacionActual.valido ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-[#FFB703] shrink-0 mt-0.5" />
           )}
           <div>
-            <span className="font-mono text-[10px] font-bold block uppercase">
+            <span className="font-mono text-[10px] font-bold block uppercase tracking-wide">
               {validacionActual.codigo}
             </span>
             <p className="mt-0.5">{validacionActual.mensaje}</p>
@@ -175,12 +174,12 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
         </div>
 
         {errorLocal && (
-          <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-300">
+          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/50 text-xs text-rose-300">
             {errorLocal}
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
           <Button
             type="button"
             variant="ghost"
