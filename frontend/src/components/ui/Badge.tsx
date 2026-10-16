@@ -8,42 +8,12 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<string, { bg: string; text: string; dot: string; border: string }> = {
-  emerald: {
-    bg: 'bg-[#00FF9D]/10',
-    text: 'text-[#00FF9D]',
-    dot: 'bg-[#00FF9D] shadow-[0_0_10px_#00FF9D]',
-    border: 'border-[#00FF9D]/40'
-  },
-  amber: {
-    bg: 'bg-[#FFB703]/10',
-    text: 'text-[#FFB703]',
-    dot: 'bg-[#FFB703] shadow-[0_0_10px_#FFB703]',
-    border: 'border-[#FFB703]/40'
-  },
-  rose: {
-    bg: 'bg-[#FF2A55]/15',
-    text: 'text-[#FF2A55]',
-    dot: 'bg-[#FF2A55] shadow-[0_0_10px_#FF2A55]',
-    border: 'border-[#FF2A55]/40'
-  },
-  sky: {
-    bg: 'bg-[#00F5FF]/10',
-    text: 'text-[#00F5FF]',
-    dot: 'bg-[#00F5FF] shadow-[0_0_10px_#00F5FF]',
-    border: 'border-[#00F5FF]/40'
-  },
-  violet: {
-    bg: 'bg-[#9D4EDD]/15',
-    text: 'text-[#C77DFF]',
-    dot: 'bg-[#9D4EDD] shadow-[0_0_10px_#9D4EDD]',
-    border: 'border-[#9D4EDD]/40'
-  },
-  neutral: {
-    bg: 'bg-white/5',
-    text: 'text-slate-300',
-    dot: 'bg-slate-400',
-    border: 'border-white/10'
-  }
+  emerald: { bg: 'bg-emerald-400/10', text: 'text-emerald-300', dot: 'bg-emerald-400', border: 'border-emerald-400/30' },
+  amber: { bg: 'bg-amber-400/10', text: 'text-amber-300', dot: 'bg-amber-400', border: 'border-amber-400/30' },
+  rose: { bg: 'bg-rose-500/10', text: 'text-rose-300', dot: 'bg-rose-400', border: 'border-rose-400/30' },
+  sky: { bg: 'bg-sky-400/10', text: 'text-sky-300', dot: 'bg-sky-400', border: 'border-sky-400/30' },
+  violet: { bg: 'bg-violet-400/10', text: 'text-violet-300', dot: 'bg-violet-400', border: 'border-violet-400/30' },
+  neutral: { bg: 'bg-white/5', text: 'text-slate-300', dot: 'bg-slate-400', border: 'border-white/10' }
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -57,7 +27,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-mono font-semibold rounded-full border backdrop-blur-md ${styles.bg} ${styles.text} ${styles.border} ${sizeClass}`}
+      className={`inline-flex items-center gap-1.5 font-mono font-semibold rounded-full border ${styles.bg} ${styles.text} ${styles.border} ${sizeClass}`}
     >
       {showDot && <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />}
       <span className="capitalize tracking-wider">{label}</span>

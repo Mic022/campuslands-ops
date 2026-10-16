@@ -52,7 +52,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
               initial={{ opacity: 0, y: 20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-              className={`pointer-events-auto p-4 rounded-xl border ${config.border} ${config.bg} backdrop-blur-md shadow-2xl flex items-start gap-3`}
+              className={`pointer-events-auto p-4 rounded-xl border ${config.border} ${config.bg} shadow-2xl flex items-start gap-3`}
             >
               {config.icon}
               <div className="flex-1 min-w-0">

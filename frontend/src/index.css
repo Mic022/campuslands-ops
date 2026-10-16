@@ -9,7 +9,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #030712;
+  background-color: #050816;
   color: #F8FAFC;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
@@ -25,38 +25,77 @@ body {
     linear-gradient(180deg, #02040B 0%, #040817 50%, #02040B 100%);
 }
 
-/* Nebulosas que derivan muy despacio detrás del cielo estrellado */
-.nebulosa-fondo {
-  background-image:
-    radial-gradient(ellipse 45% 35% at 18% 22%, rgba(99, 102, 241, 0.20) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 82% 30%, rgba(14, 165, 233, 0.16) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 35% at 65% 85%, rgba(217, 70, 239, 0.13) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 25% at 10% 80%, rgba(45, 212, 191, 0.10) 0%, transparent 70%);
-  filter: blur(8px);
-  animation: nebulosa-deriva 60s ease-in-out infinite alternate;
-}
+/* Aparición suave de una sección (solo opacidad y transform: lo resuelve la GPU) */
+.entrada-suave { animation: entrada-suave 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes entrada-suave { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-@keyframes nebulosa-deriva {
-  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
-  50% { transform: translate3d(-2%, 1.5%, 0) scale(1.06); opacity: 1; }
-  100% { transform: translate3d(1.5%, -1%, 0) scale(1.03); opacity: 0.9; }
-}
-
-/* Título con degradado aurora que se desplaza suavemente */
+/* Títulos de acento: blanco a azul hielo con brillo que recorre el texto (sin arcoíris) */
 .titulo-aurora {
-  background-image: linear-gradient(100deg, #A5F3FC 0%, #93C5FD 22%, #C4B5FD 45%, #F0ABFC 65%, #FDE68A 85%, #A5F3FC 100%);
-  background-size: 220% 100%;
+  background-image: linear-gradient(100deg, #FFFFFF 0%, #E0F2FE 40%, #7DD3FC 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 22px rgba(167, 139, 250, 0.35));
-  animation: aurora-brillo 9s ease-in-out infinite alternate;
 }
 
-@keyframes aurora-brillo {
-  from { background-position: 0% 50%; }
-  to { background-position: 100% 50%; }
+
+.font-display { font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
+
+/* Etiqueta superior de sección (eyebrow) */
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
 }
+
+/* Cabecera de página: superficie con brillo del color de acento de cada módulo */
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(var(--acento) / 0.16) 0%, transparent 55%),
+    radial-gradient(80% 120% at 0% 100%, rgb(var(--acento) / 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(14, 20, 40, 0.94), rgba(7, 10, 24, 0.96));
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.page-hero::after {
+  /* Línea luminosa superior del color del módulo */
+  content: '';
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--acento) / 0.9), transparent);
+}
+
+.hero-rejilla {
+  /* Retícula técnica tenue que se desvanece hacia la izquierda */
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+}
+
+.kpi {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  transition: border-color .25s ease, transform .25s ease, background .25s ease;
+}
+.kpi:hover {
+  border-color: rgb(var(--acento) / 0.45);
+  background: rgb(var(--acento) / 0.05);
+  transform: translateY(-2px);
+}
+
+/* Órbita decorativa alrededor del emblema de cada página */
+@keyframes orbita { to { transform: rotate(360deg); } }
+.orbita { animation: orbita 18s linear infinite; }
+.orbita-inversa { animation: orbita 26s linear infinite reverse; }
 
 /* Marco del visor 3D: borde degradado y resplandor */
 .marco-espacial {
@@ -64,7 +103,7 @@ body {
   box-shadow:
     0 0 0 1px rgba(148, 163, 184, 0.12),
     0 30px 80px -20px rgba(0, 0, 0, 0.8),
-    0 0 60px -10px rgba(99, 102, 241, 0.25);
+    0 0 60px -12px rgba(56, 189, 248, 0.22);
 }
 
 .marco-espacial::before {
@@ -73,7 +112,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.55), rgba(167, 139, 250, 0.15) 40%, rgba(240, 171, 252, 0.45));
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.6), rgba(125, 211, 252, 0.08) 45%, rgba(245, 196, 81, 0.35));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -82,28 +121,25 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nebulosa-fondo, .titulo-aurora { animation: none; }
+  .orbita, .orbita-inversa { animation: none; }
 }
 
-/* Glassmorphism Holográfico con bordes iridiscentes */
+/* Superficies de vidrio oscuras y sobrias */
 .holo-panel {
-  background: rgba(9, 14, 29, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 
-    0 10px 40px -10px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  /* Sin backdrop-filter: el fondo animado obligaría a re-desenfocar cada fotograma. */
+  background: linear-gradient(180deg, rgba(14, 20, 40, 0.94), rgba(8, 12, 28, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 50px -20px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .holo-card {
   position: relative;
-  background: linear-gradient(135deg, rgba(13, 20, 38, 0.75) 0%, rgba(9, 14, 28, 0.85) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: linear-gradient(135deg, rgba(13, 20, 38, 0.94) 0%, rgba(9, 14, 28, 0.96) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   overflow: hidden;
 }
 
@@ -113,7 +149,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(0, 245, 255, 0.3), transparent 60%, rgba(157, 78, 221, 0.3));
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), transparent 55%, rgba(245, 196, 81, 0.2));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -124,10 +160,8 @@ body {
 
 .holo-card:hover {
   transform: translateY(-3px) scale(1.008);
-  box-shadow: 
-    0 20px 40px -15px rgba(0, 245, 255, 0.2),
-    0 0 25px -5px rgba(157, 78, 221, 0.25);
-  border-color: rgba(0, 245, 255, 0.4);
+  box-shadow: 0 20px 40px -18px rgba(125, 211, 252, 0.25);
+  border-color: rgba(125, 211, 252, 0.35);
 }
 
 .holo-card:hover::before {
@@ -171,8 +205,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00F5FF;
-  box-shadow: 0 0 10px #00F5FF;
+  background: #7DD3FC;
 }
 
 /* Animación de Haz Radar Holográfico */
@@ -183,4 +216,9 @@ body {
 
 .radar-sweep {
   animation: radar-sweep 8s linear infinite;
+}
+
+/* Respeta a quien pide menos movimiento y evita trabajo innecesario. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

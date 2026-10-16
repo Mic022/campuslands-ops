@@ -47,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-[#02050E]/85 backdrop-blur-md"
+            className="fixed inset-0 bg-[#02050E]/85"
           />
 
           {/* Contenedor del Modal Holográfico */}
