@@ -13,6 +13,7 @@ import { apiClient } from './services/apiClient'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { StarfieldBackground } from './components/ui/StarfieldBackground'
+import { CyberParticles } from './components/ui/CyberParticles'
 import { ToastContainer, ToastMessage } from './components/ui/Toast'
 import { TorreZenithNivel6 } from './components/features/torre-zenith/TorreZenithNivel6'
 import { SpacesMatrix } from './components/features/spaces/SpacesMatrix'
@@ -222,6 +223,8 @@ export default function App() {
     <div className="relative min-h-screen flex flex-col cosmic-void-bg text-slate-100 selection:bg-cyan-400 selection:text-black">
       {/* Cielo estrellado con cometas fugaces */}
       <StarfieldBackground />
+      {/* Red de partículas holográficas interactivas con el cursor */}
+      <CyberParticles />
 
       {/* Navbar Superior Flotante */}
       <Navbar
