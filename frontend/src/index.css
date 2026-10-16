@@ -9,78 +9,178 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #080C14;
-  color: #F1F5F9;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #030712;
+  color: #F8FAFC;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Cyber tech background grid */
-.tech-grid-bg {
-  background-color: #080C14;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(0, 242, 254, 0.08) 0%, transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+/* Espacio profundo: degradado base (las estrellas y cometas los pinta StarfieldBackground) */
+.cosmic-void-bg {
+  background-color: #02040B;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -10%, #0B1533 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 110%, #12082A 0%, transparent 60%),
+    linear-gradient(180deg, #02040B 0%, #040817 50%, #02040B 100%);
 }
 
-/* Glassmorphism surfaces */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Nebulosas que derivan muy despacio detrás del cielo estrellado */
+.nebulosa-fondo {
+  background-image:
+    radial-gradient(ellipse 45% 35% at 18% 22%, rgba(99, 102, 241, 0.20) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 82% 30%, rgba(14, 165, 233, 0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 65% 85%, rgba(217, 70, 239, 0.13) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 25% at 10% 80%, rgba(45, 212, 191, 0.10) 0%, transparent 70%);
+  filter: blur(8px);
+  animation: nebulosa-deriva 60s ease-in-out infinite alternate;
+}
+
+@keyframes nebulosa-deriva {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
+  50% { transform: translate3d(-2%, 1.5%, 0) scale(1.06); opacity: 1; }
+  100% { transform: translate3d(1.5%, -1%, 0) scale(1.03); opacity: 0.9; }
+}
+
+/* Título con degradado aurora que se desplaza suavemente */
+.titulo-aurora {
+  background-image: linear-gradient(100deg, #A5F3FC 0%, #93C5FD 22%, #C4B5FD 45%, #F0ABFC 65%, #FDE68A 85%, #A5F3FC 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px rgba(167, 139, 250, 0.35));
+  animation: aurora-brillo 9s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-brillo {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+/* Marco del visor 3D: borde degradado y resplandor */
+.marco-espacial {
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 30px 80px -20px rgba(0, 0, 0, 0.8),
+    0 0 60px -10px rgba(99, 102, 241, 0.25);
+}
+
+.marco-espacial::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.55), rgba(167, 139, 250, 0.15) 40%, rgba(240, 171, 252, 0.45));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 40;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nebulosa-fondo, .titulo-aurora { animation: none; }
+}
+
+/* Glassmorphism Holográfico con bordes iridiscentes */
+.holo-panel {
+  background: rgba(9, 14, 29, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.holo-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(13, 20, 38, 0.75) 0%, rgba(9, 14, 28, 0.85) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.glass-card {
-  background: rgba(22, 32, 50, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.holo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 245, 255, 0.3), transparent 60%, rgba(157, 78, 221, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
 }
 
-.glass-card:hover {
-  border-color: rgba(0, 242, 254, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(0, 242, 254, 0.15);
+.holo-card:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 245, 255, 0.2),
+    0 0 25px -5px rgba(157, 78, 221, 0.25);
+  border-color: rgba(0, 245, 255, 0.4);
 }
 
-/* Sleek Cyber Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.holo-card:hover::before {
+  opacity: 1;
 }
 
-::-webkit-scrollbar-track {
-  background: #080C14;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #00F2FE;
-}
-
-/* Neomorphic subtle glows */
+/* Efecto Brillo Neón */
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(0, 242, 254, 0.25);
+  box-shadow: 0 0 25px rgba(0, 245, 255, 0.45);
 }
 
 .glow-violet {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 25px rgba(157, 78, 221, 0.45);
 }
 
-.glow-emerald {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+.glow-pink {
+  box-shadow: 0 0 25px rgba(255, 0, 122, 0.45);
 }
 
-.glow-rose {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+.glow-mint {
+  box-shadow: 0 0 25px rgba(0, 255, 157, 0.45);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 25px rgba(255, 42, 85, 0.5);
+}
+
+/* Scrollbars Futuristas */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F293D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00F5FF;
+  box-shadow: 0 0 10px #00F5FF;
+}
+
+/* Animación de Haz Radar Holográfico */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+  animation: radar-sweep 8s linear infinite;
 }
