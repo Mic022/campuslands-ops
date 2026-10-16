@@ -18,7 +18,11 @@ export default function Datos() {
                   <td><code>{a.archivo}</code></td>
                   <td>{a.entidad}</td>
                   <td>{a.codificacion ?? '—'}</td>
-                  <td>{a.error ? <span className="chip inhabilitado">{a.error}</span> : a.mojibake_reparado ? 'Leído (codificación reparada)' : 'Leído'}</td>
+                  <td>
+                    {a.error ? <span className="chip inhabilitado">{a.error}</span>
+                      : a.aviso ? <span className="chip mantenimiento">{a.aviso}</span>
+                      : a.mojibake_reparado ? 'Leído (codificación reparada)' : 'Leído'}
+                  </td>
                 </tr>
               ))}
             </tbody>
