@@ -24,7 +24,7 @@ def sembrar_usuarios(db: Session) -> dict[str, str]:
             generadas[usuario] = clave
         db.add(Usuario(usuario=usuario, nombre=nombre, rol=rol, clave_hash=hashear_clave(clave)))
 
-    asegurar(settings.ADMIN_USUARIO, "Administración", ROL_ADMIN, settings.ADMIN_CLAVE)
+    asegurar(settings.ADMIN_USUARIO, settings.ADMIN_NOMBRE, ROL_ADMIN, settings.ADMIN_CLAVE)
     for usuario in settings.USUARIOS_DEMO:
         asegurar(usuario, usuario.capitalize(), ROL_USUARIO, settings.USUARIO_CLAVE)
     db.commit()

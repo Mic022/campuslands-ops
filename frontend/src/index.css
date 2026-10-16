@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #050816;
+  color: #F8FAFC;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Espacio profundo: degradado base (las estrellas y cometas los pinta StarfieldBackground) */
+.cosmic-void-bg {
+  background-color: #02040B;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -10%, #0B1533 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 110%, #12082A 0%, transparent 60%),
+    linear-gradient(180deg, #02040B 0%, #040817 50%, #02040B 100%);
+}
+
+/* Aparición suave de una sección (solo opacidad y transform: lo resuelve la GPU) */
+.entrada-suave { animation: entrada-suave 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes entrada-suave { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Títulos de acento: blanco a azul hielo con brillo que recorre el texto (sin arcoíris) */
+.titulo-aurora {
+  background-image: linear-gradient(100deg, #FFFFFF 0%, #E0F2FE 40%, #7DD3FC 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+
+.font-display { font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
+
+/* Etiqueta superior de sección (eyebrow) */
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+/* Cabecera de página: superficie con brillo del color de acento de cada módulo */
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(var(--acento) / 0.16) 0%, transparent 55%),
+    radial-gradient(80% 120% at 0% 100%, rgb(var(--acento) / 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(14, 20, 40, 0.94), rgba(7, 10, 24, 0.96));
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.page-hero::after {
+  /* Línea luminosa superior del color del módulo */
+  content: '';
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--acento) / 0.9), transparent);
+}
+
+.hero-rejilla {
+  /* Retícula técnica tenue que se desvanece hacia la izquierda */
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+}
+
+.kpi {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  transition: border-color .25s ease, transform .25s ease, background .25s ease;
+}
+.kpi:hover {
+  border-color: rgb(var(--acento) / 0.45);
+  background: rgb(var(--acento) / 0.05);
+  transform: translateY(-2px);
+}
+
+/* Órbita decorativa alrededor del emblema de cada página */
+@keyframes orbita { to { transform: rotate(360deg); } }
+.orbita { animation: orbita 18s linear infinite; }
+.orbita-inversa { animation: orbita 26s linear infinite reverse; }
+
+/* Marco del visor 3D: borde degradado y resplandor */
+.marco-espacial {
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 30px 80px -20px rgba(0, 0, 0, 0.8),
+    0 0 60px -12px rgba(56, 189, 248, 0.22);
+}
+
+.marco-espacial::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.6), rgba(125, 211, 252, 0.08) 45%, rgba(245, 196, 81, 0.35));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 40;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbita, .orbita-inversa { animation: none; }
+}
+
+/* Superficies de vidrio oscuras y sobrias */
+.holo-panel {
+  /* Sin backdrop-filter: el fondo animado obligaría a re-desenfocar cada fotograma. */
+  background: linear-gradient(180deg, rgba(14, 20, 40, 0.94), rgba(8, 12, 28, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 50px -20px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.holo-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(13, 20, 38, 0.94) 0%, rgba(9, 14, 28, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+}
+
+.holo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), transparent 55%, rgba(245, 196, 81, 0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.holo-card:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 20px 40px -18px rgba(125, 211, 252, 0.25);
+  border-color: rgba(125, 211, 252, 0.35);
+}
+
+.holo-card:hover::before {
+  opacity: 1;
+}
+
+/* Efecto Brillo Neón */
+.glow-cyan {
+  box-shadow: 0 0 25px rgba(0, 245, 255, 0.45);
+}
+
+.glow-violet {
+  box-shadow: 0 0 25px rgba(157, 78, 221, 0.45);
+}
+
+.glow-pink {
+  box-shadow: 0 0 25px rgba(255, 0, 122, 0.45);
+}
+
+.glow-mint {
+  box-shadow: 0 0 25px rgba(0, 255, 157, 0.45);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 25px rgba(255, 42, 85, 0.5);
+}
+
+/* Scrollbars Futuristas */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F293D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7DD3FC;
+}
+
+/* Animación de Haz Radar Holográfico */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+  animation: radar-sweep 8s linear infinite;
+}
+
+/* Respeta a quien pide menos movimiento y evita trabajo innecesario. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

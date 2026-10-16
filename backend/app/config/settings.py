@@ -26,6 +26,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "")
 TOKEN_HORAS = int(os.getenv("TOKEN_HORAS", "8"))
 # Usuarios de prueba (ficticios). Si una clave está vacía, reset_db genera una y la muestra.
 ADMIN_USUARIO = os.getenv("ADMIN_USUARIO", "admin").strip()
+ADMIN_NOMBRE = os.getenv("ADMIN_NOMBRE", "Maria Fernanda Cano").strip()   # nombre visible y en la auditoría
 ADMIN_CLAVE = os.getenv("ADMIN_CLAVE", "")
 USUARIOS_DEMO = [u.strip() for u in os.getenv("USUARIOS_DEMO", "ana,beto").split(",") if u.strip()]
 USUARIO_CLAVE = os.getenv("USUARIO_CLAVE", "")

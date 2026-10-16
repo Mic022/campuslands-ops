@@ -122,7 +122,7 @@ Para facilitar la conexión y trabajo en paralelo del equipo backend (P1 Mic, P2
 | `area` | `area_responsable` |
 | `espacioId`, `recursoId` | `espacio_id`, `recurso_id` |
 | `confianzaIA`, `razonamientoIA` | `confianza_ia`, `justificacion_ia` |
-| `origenTriaje` | `origen_triaje` (`ia` \| `manual`; lo decide el backend) |
+| `origenTriaje` | `origen_triaje` (`ia` \| `manual` \| `pendiente`) |
 | `timestamp` | `creada_en` |
 | `sugerenciaAccion` | — (opcional; la IA no la devuelve) |
 
@@ -184,8 +184,8 @@ IDs de espacio y recurso son **texto**.
 
 | Hueco | Dueño | Bloquea |
 |---|---|---|
-| ~~Endpoints de incidencias (§5)~~ ✅ integrado (PR #3) | Nic | — |
-| ~~Integrar PR #2 (RN-04 en reservas y préstamos)~~ ✅ integrado | Mic | — |
+| Endpoints de incidencias (§5) y corrección de `triaje.py` (falta `import settings`; usar el adaptador de `develop`) | Nic | Triaje, RN-04 visible, demo |
+| Integrar PR #2 (RN-04 en reservas y préstamos) | Mic (aprobar) | Bloqueos |
 | Reescribir `apiClient.ts`, `layout3D.ts`, ajustes de §4 | Sergio (o Mic si se acuerda) | Toda la UI |
 | Inventario de recursos (oficial o creado desde la app) | Equipo / organizadores | Módulo 2 en la demo |
 | Proveedor de IA autorizado + clave en `.env` | Organizadores | IA en vivo |
@@ -219,7 +219,6 @@ GET  /api/auth/yo      → {usuario, nombre, rol}
 - [ ] Pestaña de Datos con el reporte de carga (`GET /api/datos/reporte`)
 - [ ] Historial de un recurso (`GET /api/auditoria?entidad=recurso&id=...`)
 - [ ] Cambiar `MAX_HORAS_RESERVA` en `reglas.py` → la UI lo refleja sin tocar el frontend
-- [ ] Login con `admin` y con `ana`: el usuario no ve acciones de admin y recibe 403 si las intenta
 - [ ] `npm run build` sin errores y versiones fijadas en `package.json`
 - [ ] Nada de `demoData`, `rulesEngine`, `triajeConIA`, modo demo ni métricas inventadas
 
