@@ -81,6 +81,13 @@ TRANSICIONES_RECURSO = {
     EstadoRecurso.baja: set(),
 }
 
+# Ciclo de vida de una incidencia: una resuelta no se reabre (se reporta una nueva).
+TRANSICIONES_INCIDENCIA = {
+    EstadoIncidencia.abierta: {EstadoIncidencia.en_proceso, EstadoIncidencia.resuelta},
+    EstadoIncidencia.en_proceso: {EstadoIncidencia.abierta, EstadoIncidencia.resuelta},
+    EstadoIncidencia.resuelta: set(),
+}
+
 
 def valores(enum_cls) -> list[str]:
     return [e.value for e in enum_cls]

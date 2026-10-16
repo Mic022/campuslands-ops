@@ -47,10 +47,10 @@ Nombre, aforo, tipo y estado **siempre** vienen de la API.
 | `crearPrestamo()` | `POST /api/prestamos` | ✅ listo (RN-03, 06; RN-04 en PR #2) |
 | `actualizarEstadoRecurso()` | `PATCH /api/recursos/{id}/estado` `{estado, motivo?}` | ✅ listo (RN-03) |
 | `devolverPrestamo(id, 'optimo'|'danado')` | `POST /api/prestamos/{id}/devolucion` `{estado_recurso: 'disponible'|'danado'}` | ✅ listo (RN-07) |
-| `triajeConIA(texto)` | `POST /api/incidencias/triaje` | ⚠️ Nic (ver §5) |
-| `getIncidencias()` | `GET /api/incidencias` | ❌ falta (Nic) |
-| `crearIncidencia()` | `POST /api/incidencias` | ❌ falta (Nic) |
-| `resolverIncidencia(id)` | `PATCH /api/incidencias/{id}` `{estado: 'resuelta'}` | ❌ falta (Nic) |
+| `triajeConIA(texto)` | `POST /api/incidencias/triaje` | ✅ listo (rama DevNic) |
+| `getIncidencias()` | `GET /api/incidencias` | ✅ listo (rama DevNic) |
+| `crearIncidencia()` | `POST /api/incidencias` (enviar `propuesta_ia`) | ✅ listo (rama DevNic) |
+| `resolverIncidencia(id)` | `PATCH /api/incidencias/{id}` `{estado: 'resuelta'}` | ✅ listo (rama DevNic) |
 
 **Errores:** todo error del backend llega como `{codigo, mensaje}` (409 regla, 404, 422 con
 `detalles`, 503 IA caída, 500). `apiClient` lo convierte en `ApiError(codigo, mensaje)` y los
@@ -104,7 +104,7 @@ toasts que ya existen en `App.tsx` lo muestran tal cual.
 | `area` | `area_responsable` |
 | `espacioId`, `recursoId` | `espacio_id`, `recurso_id` |
 | `confianzaIA`, `razonamientoIA` | `confianza_ia`, `justificacion_ia` |
-| `origenTriaje` | `origen_triaje` (`ia` \| `manual` \| `pendiente`) |
+| `origenTriaje` | `origen_triaje` (`ia` \| `manual`; lo decide el backend) |
 | `timestamp` | `creada_en` |
 | `sugerenciaAccion` | — (opcional; la IA no la devuelve) |
 
@@ -140,16 +140,19 @@ POST  /api/incidencias/triaje
 
 POST  /api/incidencias
       body {titulo, descripcion, espacio_id?, recurso_id?, categoria, prioridad, area_responsable,
-            origen_triaje: "ia"|"manual", confianza_ia?, justificacion_ia?}
+            propuesta_ia?: <la respuesta de /triaje, tal cual>}
       → 201 Incidencia
+      El backend decide origen_triaje: "ia" si categoria/prioridad/area coinciden con propuesta_ia,
+      "manual" si la persona las ajustó o no usó la IA.
       Efectos (en una transacción, con auditar()):
-        - si trae recurso_id y el recurso está fijo en un espacio, guardar también ese espacio_id
+        - si trae recurso_id y el recurso está fijo en un espacio, guarda también ese espacio_id
           (así "el videobeam de Cosmos echa humo" bloquea el recurso Y el aula, RN-04)
-        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y hay recurso disponible → recurso a "mantenimiento"
+        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y el recurso puede pasar a mantenimiento → "mantenimiento"
+          (si está prestado no se toca: RN-04 lo bloquea igual por la incidencia abierta)
 
 PATCH /api/incidencias/{id}
-      body {estado: "en_proceso"|"resuelta"}
-      → 200 Incidencia   (resuelta → resuelta_en = ahora)
+      body {estado: "abierta"|"en_proceso"|"resuelta", observacion?: str}
+      → 200 Incidencia   (resuelta → resuelta_en = ahora; una resuelta no se reabre → 409 RN-08)
       El recurso NO vuelve solo a "disponible": se pasa explícitamente con PATCH /api/recursos/{id}/estado.
 ```
 
@@ -171,6 +174,21 @@ IDs de espacio y recurso son **texto**.
 
 ---
 
+## 6.1 Login y roles (nuevo)
+
+```
+POST /api/auth/login   {usuario, clave}
+  → 200 {token, tipo: "bearer", expira_en_horas, usuario: {usuario, nombre, rol}}
+  → 401 {codigo: "AUTH-401", mensaje: "Usuario o clave incorrectos."}
+GET  /api/auth/yo      → {usuario, nombre, rol}
+```
+- Todas las rutas salvo `/api/health`, `/api/catalogos`, `/api/reglas` y el login exigen `Authorization: Bearer <token>`.
+- **401** (sesión vencida o inválida) → borrar la sesión y volver al login. **403** → mostrar el mensaje (no tiene permiso).
+- Rol `usuario`: el `solicitante` de reservas y préstamos debe ser su `nombre` → prellenarlo con `usuario.nombre` y no dejarlo editable.
+- Ocultar a `usuario` los botones de admin: crear/editar espacios y recursos, cambiar estado de recurso, devolución, cambiar estado de incidencia, pestañas de Datos y Auditoría. (El backend igual lo bloquea con 403.)
+- Guardar el token en `sessionStorage` (envuelto en try/catch), nunca en el código.
+- Referencia: `frontend/src/api.js` y `frontend/src/components/Login.jsx` en `develop`.
+
 ## 7. Checklist de requisitos después de integrar
 
 - [ ] Los 12 espacios de la UI son los oficiales (nada de Turing/Lovelace)
@@ -183,6 +201,7 @@ IDs de espacio y recurso son **texto**.
 - [ ] Pestaña de Datos con el reporte de carga (`GET /api/datos/reporte`)
 - [ ] Historial de un recurso (`GET /api/auditoria?entidad=recurso&id=...`)
 - [ ] Cambiar `MAX_HORAS_RESERVA` en `reglas.py` → la UI lo refleja sin tocar el frontend
+- [ ] Login con `admin` y con `ana`: el usuario no ve acciones de admin y recibe 403 si las intenta
 - [ ] `npm run build` sin errores y versiones fijadas en `package.json`
 - [ ] Nada de `demoData`, `rulesEngine`, `triajeConIA`, modo demo ni métricas inventadas
 

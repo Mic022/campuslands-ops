@@ -103,3 +103,13 @@ class LlamadaIA(SQLModel, table=True):
     valida: bool
     error: str | None = None
     fecha: datetime = Field(default_factory=ahora)
+
+
+class Usuario(SQLModel, table=True):
+    __tablename__ = "usuarios"
+
+    usuario: str = Field(primary_key=True)             # nombre de inicio de sesión
+    nombre: str                                        # con el que figura como solicitante y en la auditoría
+    rol: str                                           # config/permisos.py: admin | usuario
+    clave_hash: str                                    # PBKDF2; nunca la clave en claro
+    activo: bool = True
