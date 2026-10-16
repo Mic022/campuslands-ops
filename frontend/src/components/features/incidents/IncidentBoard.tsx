@@ -7,9 +7,7 @@ import {
   ShieldAlert, 
   Search, 
   CheckCircle2, 
-  Clock, 
   Bot, 
-  AlertTriangle, 
   Wrench, 
   Building2, 
   Laptop,
@@ -68,15 +66,17 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
         onAplicarTriaje={(res, desc) => onAbrirReporteModalConTriaje({ resultado: res, descripcion: desc })}
       />
 
-      {/* Barra de Filtros y Búsqueda del Tablero */}
-      <div className="glass-panel p-4 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      {/* Barra de Filtros del Tablero */}
+      <div className="holo-panel p-4 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-rose-400" />
-            <h3 className="text-base font-bold text-white">Registro Central de Incidencias</h3>
+            <h3 className="text-base font-black text-white tracking-wide">
+              Registro Central de Incidencias
+            </h3>
           </div>
           {criticasAbiertas > 0 && (
-            <span className="text-xs font-mono font-bold bg-rose-950 text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/40 animate-pulse">
+            <span className="text-xs font-mono font-bold bg-rose-950/90 text-rose-300 px-3 py-1 rounded-full border border-rose-500/50 animate-pulse glow-crimson">
               {criticasAbiertas} Crítica(s) Activa(s)
             </span>
           )}
@@ -84,20 +84,20 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-cyan-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar reporte..."
-              className="pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="pl-9 pr-3.5 py-1.5 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
           </div>
 
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-black/40 border border-white/10 text-xs text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
           >
             <option value="todas">Todos los Estados</option>
             <option value="abierta">Abiertas</option>
@@ -108,7 +108,7 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
           <select
             value={filtroPrioridad}
             onChange={e => setFiltroPrioridad(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-black/40 border border-white/10 text-xs text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
           >
             <option value="todas">Todas las Prioridades</option>
             <option value="critica">Solo Críticas</option>
@@ -119,11 +119,11 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
         </div>
       </div>
 
-      {/* Listado de Tarjetas de Incidencias */}
-      <div className="space-y-3">
+      {/* Listado de Tarjetas Holográficas de Incidencias */}
+      <div className="space-y-3.5">
         {incidenciasFiltradas.length === 0 ? (
-          <div className="glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-sm">
-            No se encontraron incidencias que coincidan con los filtros.
+          <div className="holo-panel p-8 rounded-2xl border border-white/10 text-center text-slate-400 text-sm">
+            No se encontraron incidencias que coincidan con los filtros seleccionados.
           </div>
         ) : (
           incidenciasFiltradas.map(inc => {
@@ -133,19 +133,19 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
             return (
               <div
                 key={inc.id}
-                className={`p-5 rounded-2xl glass-card border transition-all ${
+                className={`p-6 rounded-2xl holo-card border transition-all ${
                   esResuelta
-                    ? 'border-slate-800/60 opacity-75'
+                    ? 'opacity-65 border-white/5'
                     : esCritica
-                    ? 'border-rose-500/50 bg-rose-950/10'
-                    : 'border-slate-800'
+                    ? 'border-rose-500/60 shadow-lg shadow-rose-950/30'
+                    : 'border-white/10'
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-2 flex-1">
+                  <div className="space-y-2.5 flex-1">
                     {/* Código, Timestamp y Badges */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-cyan-500/20">
+                      <span className="font-mono text-xs font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-500/30 px-2.5 py-0.5 rounded-lg">
                         {inc.codigo}
                       </span>
 
@@ -178,46 +178,46 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
                       </span>
 
                       {inc.origenTriaje === 'ia' && (
-                        <span className="flex items-center gap-1 text-[10px] font-mono bg-purple-950/70 border border-purple-500/30 text-purple-300 px-2 py-0.5 rounded">
-                          <Bot className="w-3 h-3 text-purple-400" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-mono bg-purple-950/80 border border-purple-500/40 text-purple-300 px-2.5 py-0.5 rounded-lg">
+                          <Bot className="w-3.5 h-3.5 text-purple-400" />
                           <span>IA {(inc.confianzaIA * 100).toFixed(0)}%</span>
                         </span>
                       )}
                     </div>
 
                     {/* Título y Descripción */}
-                    <h4 className="text-base font-bold text-white leading-snug">
+                    <h4 className="text-base font-extrabold text-white leading-snug">
                       {inc.titulo}
                     </h4>
                     <p className="text-xs text-slate-300 leading-relaxed">
                       {inc.descripcion}
                     </p>
 
-                    {/* Espacio o Recurso Afectado */}
-                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-400">
+                    {/* Espacio o Hardware Afectado */}
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs text-slate-400">
                       {inc.espacioNombre && (
-                        <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
+                        <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-xl border border-white/10">
                           <Building2 className="w-3.5 h-3.5 text-cyan-400" />
                           <span>Espacio: <strong className="text-slate-200">{inc.espacioNombre}</strong></span>
                         </div>
                       )}
                       {inc.recursoCodigo && (
-                        <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
+                        <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-xl border border-white/10">
                           <Laptop className="w-3.5 h-3.5 text-purple-400" />
                           <span>Hardware: <strong className="text-slate-200">{inc.recursoCodigo}</strong></span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
+                      <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-xl border border-white/10">
                         <Wrench className="w-3.5 h-3.5 text-amber-400" />
                         <span>Área: <strong className="text-slate-200 capitalize">{inc.area.replace('_', ' ')}</strong></span>
                       </div>
                     </div>
 
-                    {/* Sugerencia de la IA si existe */}
+                    {/* Sugerencia de la IA */}
                     {inc.sugerenciaAccion && (
-                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-cyan-300">
+                      <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-xs text-cyan-200">
                         <strong className="text-cyan-400 block mb-0.5 font-semibold">
-                          Acción Recomendada:
+                          Acción Recomendada por IA:
                         </strong>
                         {inc.sugerenciaAccion}
                       </div>
@@ -237,7 +237,7 @@ export const IncidentBoard: React.FC<IncidentBoardProps> = ({
                         Marcar Resuelta
                       </Button>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                      <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono bg-emerald-950/70 px-3.5 py-1.5 rounded-xl border border-emerald-500/40 glow-mint">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Caso Cerrado</span>
                       </span>
