@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Building2, Laptop, Sparkles, Sliders, Orbit, Radio, Siren } from 'lucide-react'
+import { Building2, Laptop, Sparkles, Sliders, Orbit, Siren } from 'lucide-react'
 import { Brand } from './Brand'
 
 export type TabType = '3d-twin' | 'spaces' | 'resources' | 'incidents' | 'jury'
@@ -9,8 +9,6 @@ interface NavbarProps {
   activeTab: TabType
   onSelectTab: (tab: TabType) => void
   onOpenReportModal: () => void
-  isDemoMode: boolean
-  onToggleDemoMode: () => void
   incidenciasCriticasCount: number
 }
 
@@ -18,8 +16,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenReportModal,
-  isDemoMode,
-  onToggleDemoMode,
   incidenciasCriticasCount
 }) => {
   const tabs: { id: TabType; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -80,18 +76,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleDemoMode}
-              title="Alternar entre datos de demostración y API en vivo (módulos de espacios, hardware e incidentes)"
-              className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white sm:flex cursor-pointer"
-            >
-              <span className={`relative flex h-2 w-2`}>
-                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                <span className={`relative inline-flex h-2 w-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-              </span>
-              {isDemoMode ? 'Demo' : 'En vivo'}
-              <Radio className="h-3.5 w-3.5 text-slate-500" />
-            </button>
             <button
               onClick={onOpenReportModal}
               className="flex items-center gap-2 rounded-xl bg-rose-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-600/25 transition hover:bg-rose-400 cursor-pointer"

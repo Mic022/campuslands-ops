@@ -10,7 +10,7 @@ import {
   TriajeIAResponse,
   EstadoRecurso
 } from './types/domain'
-import { apiClient } from './services/apiClient'
+import { ApiError, apiClient } from './services/apiClient'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { StarfieldBackground } from './components/ui/StarfieldBackground'
@@ -26,28 +26,23 @@ import { ResourceLoanModal } from './components/features/resources/ResourceLoanM
 import { IncidentBoard } from './components/features/incidents/IncidentBoard'
 import { IncidentReportModal } from './components/features/incidents/IncidentReportModal'
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
+import { AvisoError, EstadoCarga } from './components/ui/EstadoDatos'
 import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
+
+type Fuente = 'reglas' | 'espacios' | 'recursos' | 'reservas' | 'prestamos' | 'incidencias'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('3d-twin')
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(true)
 
-  // Datos principales
+  // Datos principales: todos vienen del backend (no hay datos de demostración).
   const [espacios, setEspacios] = useState<Espacio[]>([])
   const [recursos, setRecursos] = useState<Recurso[]>([])
   const [incidencias, setIncidencias] = useState<Incidencia[]>([])
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [prestamos, setPrestamos] = useState<Prestamo[]>([])
-  const [config, setConfig] = useState<ReglasConfig>({
-    hora_apertura: 6,
-    hora_cierre: 22,
-    max_horas_reserva: 4,
-    factor_aforo: 1.0,
-    max_prestamos_activos: 2,
-    prioridades_bloqueantes: ['critica', 'alta'],
-    umbral_confianza_ia: 0.6,
-    max_largo_descripcion: 1000
-  })
+  const [config, setConfig] = useState<ReglasConfig | null>(null)
+  const [cargando, setCargando] = useState(true)
+  const [errores, setErrores] = useState<Partial<Record<Fuente, string>>>({})
 
   // Modales
   const [isBookingOpen, setIsBookingOpen] = useState(false)
@@ -66,59 +61,92 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   const addToast = (tipo: ToastMessage['tipo'], mensaje: string, codigo?: string) => {
-    const id = Date.now().toString()
+    const id = `${Date.now()}-${Math.random()}`
     setToasts(prev => [...prev, { id, tipo, mensaje, codigo }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
-    }, 4500)
+    }, 5500)
   }
 
   const dismissToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
 
-  // Carga inicial de datos
+  /**
+   * Carga cada fuente por separado: si una falla (p. ej. incidencias aún no publicada),
+   * las demás pantallas siguen funcionando y esa muestra el error real de la API.
+   */
   const cargarTodo = async () => {
-    try {
-      const [esp, rec, inc, res, pres, cfg] = await Promise.all([
-        apiClient.getEspacios(),
-        apiClient.getRecursos(),
-        apiClient.getIncidencias(),
-        apiClient.getReservas(),
-        apiClient.getPrestamos(),
-        apiClient.getReglas()
-      ])
-      setEspacios(esp)
-      setRecursos(rec)
-      setIncidencias(inc)
-      setReservas(res)
-      setPrestamos(pres)
-      setConfig(cfg)
-    } catch {
-      addToast('error', 'Error al sincronizar datos del campus.')
+    const nuevosErrores: Partial<Record<Fuente, string>> = {}
+    const intentar = async <T,>(fuente: Fuente, fn: () => Promise<T>): Promise<T | undefined> => {
+      try {
+        return await fn()
+      } catch (err) {
+        const e = err as ApiError
+        nuevosErrores[fuente] = e.codigo ? `[${e.codigo}] ${e.message}` : e.message
+        return undefined
+      }
     }
+
+    const [cfg, esp] = await Promise.all([
+      intentar('reglas', () => apiClient.getReglas()),
+      intentar('espacios', () => apiClient.getEspacios())
+    ])
+    // Los recursos se piden antes que los préstamos para poder nombrar el equipo de cada préstamo.
+    const rec = await intentar('recursos', () => apiClient.getRecursos())
+    const [res, pres, inc] = await Promise.all([
+      intentar('reservas', () => apiClient.getReservas()),
+      intentar('prestamos', () => apiClient.getPrestamos()),
+      intentar('incidencias', () => apiClient.getIncidencias())
+    ])
+
+    if (cfg) setConfig(cfg)
+    if (inc) setIncidencias(inc)
+    if (esp) {
+      // Solo para pintar: el espacio con una incidencia abierta de prioridad bloqueante.
+      const bloqueantes = cfg?.prioridades_bloqueantes ?? []
+      setEspacios(esp.map(e => ({
+        ...e,
+        incidenciaActivaId: (inc ?? []).find(
+          i => i.espacioId === e.id && i.estado !== 'resuelta' && i.prioridad !== null && bloqueantes.includes(i.prioridad)
+        )?.id
+      })))
+    }
+    if (res) setReservas(res)
+    if (pres) setPrestamos(pres)
+    if (rec) {
+      setRecursos(rec.map(r => ({
+        ...r,
+        solicitanteActual: (pres ?? []).find(p => p.recursoId === r.id && p.estado === 'activo')?.solicitanteNombre
+      })))
+    }
+    setErrores(nuevosErrores)
+    setCargando(false)
   }
 
   useEffect(() => {
     cargarTodo()
   }, [])
 
-  // Acciones de Negocio
+  const mostrarError = (err: unknown) => {
+    const e = err as ApiError
+    addToast('error', e.message, e.codigo)
+  }
+
+  // Acciones: el backend valida todo y responde {codigo, mensaje}; aquí solo se muestra.
   const handleCrearReserva = async (datos: {
     espacioId: string
     solicitanteNombre: string
-    solicitanteEmail: string
-    horaInicio: string
-    horaFin: string
+    inicio: string
+    fin: string
     numPersonas: number
-    motivo: string
   }) => {
     try {
       const nueva = await apiClient.crearReserva(datos)
       await cargarTodo()
-      addToast('exito', `Reserva ${nueva.id} confirmada para ${nueva.espacioNombre}.`, 'RN-01-OK')
-    } catch (err: any) {
-      addToast('error', err.message, err.codigo || 'ERR-RESERVA')
+      addToast('exito', `Reserva #${nueva.id} confirmada para ${nueva.espacioNombre}.`)
+    } catch (err) {
+      mostrarError(err)
       throw err
     }
   }
@@ -126,15 +154,14 @@ export default function App() {
   const handleCrearPrestamo = async (datos: {
     recursoId: string
     solicitanteNombre: string
-    solicitanteEmail: string
     fechaEstimadaDevolucion: string
   }) => {
     try {
       const nuevo = await apiClient.crearPrestamo(datos)
       await cargarTodo()
-      addToast('exito', `Préstamo ${nuevo.id} asignado a ${nuevo.solicitanteNombre}.`, 'RN-02-OK')
-    } catch (err: any) {
-      addToast('error', err.message, err.codigo || 'ERR-PRESTAMO')
+      addToast('exito', `Préstamo #${nuevo.id} registrado a nombre de ${nuevo.solicitanteNombre}.`)
+    } catch (err) {
+      mostrarError(err)
       throw err
     }
   }
@@ -143,9 +170,9 @@ export default function App() {
     try {
       const actualizado = await apiClient.actualizarEstadoRecurso(recursoId, nuevoEstado)
       await cargarTodo()
-      addToast('exito', `Recurso ${actualizado.codigo} pasó a estado ${nuevoEstado.toUpperCase()}.`, 'RN-03-OK')
-    } catch (err: any) {
-      addToast('error', err.message, err.codigo || 'RN-03-ERROR')
+      addToast('exito', `El recurso ${actualizado.codigo} pasó a "${nuevoEstado}".`)
+    } catch (err) {
+      mostrarError(err)
     }
   }
 
@@ -155,25 +182,20 @@ export default function App() {
       await cargarTodo()
       addToast(
         estadoEntrega === 'danado' ? 'advertencia' : 'exito',
-        `Equipo devuelto con estado: ${estadoEntrega.toUpperCase()}.`,
-        'RN-03-DEVOLUCION'
+        estadoEntrega === 'danado' ? 'Equipo devuelto y marcado como dañado.' : 'Equipo devuelto y disponible.'
       )
-    } catch (err: any) {
-      addToast('error', err.message)
+    } catch (err) {
+      mostrarError(err)
     }
   }
 
-  const handleCrearIncidencia = async (datos: any) => {
+  const handleCrearIncidencia = async (datos: Parameters<typeof apiClient.crearIncidencia>[0]) => {
     try {
       const nueva = await apiClient.crearIncidencia(datos)
       await cargarTodo()
-      addToast(
-        datos.prioridad === 'critica' ? 'advertencia' : 'exito',
-        `Incidencia [${nueva.codigo}] registrada. Espacio bloqueado preventivamente por regla integradora (RN-04).`,
-        'RN-04-TRIAGE'
-      )
-    } catch (err: any) {
-      addToast('error', err.message)
+      addToast('exito', `Incidencia ${nueva.codigo} registrada.`)
+    } catch (err) {
+      mostrarError(err)
       throw err
     }
   }
@@ -182,23 +204,10 @@ export default function App() {
     try {
       const res = await apiClient.resolverIncidencia(incidenciaId)
       await cargarTodo()
-      addToast('exito', `Incidencia [${res.codigo}] marcada como resuelta. Espacio reactivado inmediatamente.`, 'RN-04-RESTORE')
-    } catch (err: any) {
-      addToast('error', err.message)
+      addToast('exito', `Incidencia ${res.codigo} marcada como resuelta.`)
+    } catch (err) {
+      mostrarError(err)
     }
-  }
-
-  const handleUpdateConfig = async (nueva: Partial<ReglasConfig>) => {
-    const actualizada = await apiClient.updateReglas(nueva)
-    setConfig(actualizada)
-    addToast('info', 'Parámetros de negocio actualizados en caliente.', 'CONFIG-APPLIED')
-  }
-
-  const handleToggleDemoMode = () => {
-    const nuevoModo = !isDemoMode
-    setIsDemoMode(nuevoModo)
-    apiClient.setModoDemo(nuevoModo)
-    addToast('info', nuevoModo ? 'Cambiado a Modo Demostración Offline.' : 'Sincronizando con Backend FastAPI (/api)...')
   }
 
   const incidenciasCriticasCount = incidencias.filter(
@@ -238,8 +247,6 @@ export default function App() {
           setTriajePrecargado(null)
           setIsReportOpen(true)
         }}
-        isDemoMode={isDemoMode}
-        onToggleDemoMode={handleToggleDemoMode}
         incidenciasCriticasCount={incidenciasCriticasCount}
       />
 
@@ -280,7 +287,9 @@ export default function App() {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-8"
             >
-              {activeTab === 'spaces' && (
+              {!config && <EstadoCarga cargando={cargando} error={errores.reglas} onReintentar={cargarTodo} />}
+
+              {config && activeTab === 'spaces' && (
                 <>
                   <PageHero
                     acento="52 211 153"
@@ -288,8 +297,8 @@ export default function App() {
                     icono={<Building2 />}
                     titulo="Cada espacio, con su"
                     tituloAcento="semáforo de aforo"
-                    descripcion="Supervisa la ocupación de aulas y cubículos, reserva con validación de horario y capacidad, y detecta al instante los espacios bloqueados por incidentes críticos."
-                    reglas={['RN-01 · Aforo y horario', 'RN-04 · Bloqueo por incidente']}
+                    descripcion="Los espacios oficiales del campus con su aforo y estado. Reserva indicando fecha y horario: el servidor valida aforo, horario, solapes y bloqueos y responde con el código de la regla."
+                    reglas={[`Horario ${config.hora_apertura}:00–${config.hora_cierre}:00`, `Máx. ${config.max_horas_reserva} h por reserva`, 'Validado por el servidor']}
                     kpis={[
                       { etiqueta: 'Espacios', valor: espacios.length, detalle: `${capacidadTotal} plazas en total` },
                       { etiqueta: 'Disponibles', valor: <span className="text-emerald-300">{espaciosDisponibles}</span>, detalle: 'Listos para reservar' },
@@ -297,6 +306,7 @@ export default function App() {
                       { etiqueta: 'Horario', valor: `${config.hora_apertura}–${config.hora_cierre} h`, detalle: `Aforo al ${Math.round(config.factor_aforo * 100)} %` }
                     ]}
                   />
+                  <AvisoError mensaje={errores.espacios ?? errores.reservas} />
                   <SpacesMatrix
                     espacios={espacios}
                     reservas={reservas}
@@ -315,7 +325,7 @@ export default function App() {
                 </>
               )}
 
-              {activeTab === 'resources' && (
+              {config && activeTab === 'resources' && (
                 <>
                   <PageHero
                     acento="167 139 250"
@@ -323,8 +333,8 @@ export default function App() {
                     icono={<Laptop />}
                     titulo="Equipos con"
                     tituloAcento="trazabilidad total"
-                    descripcion="Inventario de laptops, kits y periféricos con una máquina de estados estricta: cada préstamo, devolución y daño queda registrado, y nadie supera su cupo de préstamos."
-                    reglas={[`RN-02 · Máx. ${config.max_prestamos_activos} préstamos por persona`, 'RN-03 · Máquina de estados']}
+                    descripcion="Inventario de equipos con una máquina de estados estricta: cada préstamo, devolución y daño queda registrado en el servidor, que también controla el cupo de préstamos por persona."
+                    reglas={[`Máx. ${config.max_prestamos_activos} préstamos por persona`, 'Máquina de estados', 'Validado por el servidor']}
                     kpis={[
                       { etiqueta: 'Equipos', valor: recursos.length, detalle: 'En inventario' },
                       { etiqueta: 'Disponibles', valor: <span className="text-violet-300">{recursosDisponibles}</span>, detalle: 'Listos para prestar' },
@@ -332,6 +342,7 @@ export default function App() {
                       { etiqueta: 'Fuera de servicio', valor: recursosFueraDeServicio, detalle: 'Dañados o en mantenimiento' }
                     ]}
                   />
+                  <AvisoError mensaje={errores.recursos ?? errores.prestamos} />
                   <ResourceInventory
                     recursos={recursos}
                     prestamos={prestamos}
@@ -347,7 +358,7 @@ export default function App() {
                 </>
               )}
 
-              {activeTab === 'incidents' && (
+              {config && activeTab === 'incidents' && (
                 <>
                   <PageHero
                     acento="251 113 133"
@@ -356,7 +367,7 @@ export default function App() {
                     titulo="Del reporte a la solución,"
                     tituloAcento="priorizado por IA"
                     descripcion="Describe el problema en lenguaje natural: la IA propone categoría, prioridad y área responsable. Lo dudoso pasa a revisión humana y lo crítico bloquea el espacio afectado."
-                    reglas={['RN-04 · Bloqueo preventivo', `Revisión humana bajo ${Math.round(config.umbral_confianza_ia * 100)} % de confianza`]}
+                    reglas={[`Prioridades bloqueantes: ${config.prioridades_bloqueantes.join(', ')}`, `Revisión humana bajo ${Math.round(config.umbral_confianza_ia * 100)} % de confianza`]}
                     kpis={[
                       { etiqueta: 'Abiertas', valor: incidenciasAbiertas, detalle: 'En curso o sin asignar' },
                       { etiqueta: 'Críticas', valor: <span className="text-rose-300">{incidenciasCriticasCount}</span>, detalle: incidenciasCriticasCount ? 'Requieren atención' : 'Sin alertas' },
@@ -364,6 +375,7 @@ export default function App() {
                       { etiqueta: 'Triaje IA', valor: `${triajeIA} %`, detalle: 'Clasificadas por IA' }
                     ]}
                   />
+                  <AvisoError titulo="El módulo de incidencias de la API no respondió" mensaje={errores.incidencias} />
                   <IncidentBoard
                     incidencias={incidencias}
                     espacios={espacios}
@@ -378,32 +390,24 @@ export default function App() {
                 </>
               )}
 
-              {activeTab === 'jury' && (
+              {config && activeTab === 'jury' && (
                 <>
                   <PageHero
                     acento="251 191 36"
                     modulo="Módulo 05 · Inspector del jurado"
                     icono={<Sliders />}
-                    titulo="Reglas de negocio,"
-                    tituloAcento="demostradas en vivo"
-                    descripcion="Ajusta los parámetros del negocio en caliente y ejecuta la batería de pruebas que demuestra cada regla frente al jurado, con resultados y códigos verificables."
-                    reglas={['RN-01', 'RN-02', 'RN-03', 'RN-04']}
+                    titulo="Reglas de negocio"
+                    tituloAcento="vigentes en el servidor"
+                    descripcion="Parámetros que aplica el backend en este momento, leídos de GET /api/reglas. Se cambian en backend/app/config/reglas.py y la interfaz los refleja sin tocar el frontend."
+                    reglas={['Solo lectura', 'GET /api/reglas']}
                     kpis={[
-                      { etiqueta: 'Reglas activas', valor: 4, detalle: 'RN-01 a RN-04' },
+                      { etiqueta: 'Aforo aplicado', valor: `${Math.round(config.factor_aforo * 100)} %`, detalle: 'Factor sobre el aforo oficial' },
                       { etiqueta: 'Horario', valor: `${config.hora_apertura}–${config.hora_cierre} h`, detalle: `Máx. ${config.max_horas_reserva} h por reserva` },
                       { etiqueta: 'Cupo préstamos', valor: config.max_prestamos_activos, detalle: 'Por persona' },
                       { etiqueta: 'Umbral IA', valor: `${Math.round(config.umbral_confianza_ia * 100)} %`, detalle: 'Confianza mínima' }
                     ]}
                   />
-                  <JuryRulesInspector
-                    config={config}
-                    onUpdateConfig={handleUpdateConfig}
-                    espacios={espacios}
-                    recursos={recursos}
-                    reservas={reservas}
-                    prestamos={prestamos}
-                    incidencias={incidencias}
-                  />
+                  <JuryRulesInspector config={config} />
                 </>
               )}
             </motion.div>
@@ -414,36 +418,35 @@ export default function App() {
       {/* Footer */}
       <Footer />
 
-      {/* Modales con Glassmorphism Holográfico */}
-      <SpaceBookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        espacio={espacioParaReserva}
-        reservasExistentes={reservas}
-        incidenciasActivas={incidencias}
-        config={config}
-        onSubmitReserva={handleCrearReserva}
-      />
+      {/* Modales: envían al backend y muestran su {codigo, mensaje} */}
+      {config && (
+        <>
+          <SpaceBookingModal
+            isOpen={isBookingOpen}
+            onClose={() => setIsBookingOpen(false)}
+            espacio={espacioParaReserva}
+            config={config}
+            onSubmitReserva={handleCrearReserva}
+          />
 
-      <ResourceLoanModal
-        isOpen={isLoanOpen}
-        onClose={() => setIsLoanOpen(false)}
-        recurso={recursoParaPrestamo}
-        prestamosActivos={prestamos}
-        incidenciasActivas={incidencias}
-        config={config}
-        onSubmitPrestamo={handleCrearPrestamo}
-      />
+          <ResourceLoanModal
+            isOpen={isLoanOpen}
+            onClose={() => setIsLoanOpen(false)}
+            recurso={recursoParaPrestamo}
+            onSubmitPrestamo={handleCrearPrestamo}
+          />
 
-      <IncidentReportModal
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-        espacios={espacios}
-        recursos={recursos}
-        config={config}
-        triajePrecargado={triajePrecargado}
-        onSubmitIncidencia={handleCrearIncidencia}
-      />
+          <IncidentReportModal
+            isOpen={isReportOpen}
+            onClose={() => setIsReportOpen(false)}
+            espacios={espacios}
+            recursos={recursos}
+            config={config}
+            triajePrecargado={triajePrecargado}
+            onSubmitIncidencia={handleCrearIncidencia}
+          />
+        </>
+      )}
 
       {/* Notificaciones Toasts Flotantes */}
       <ToastContainer

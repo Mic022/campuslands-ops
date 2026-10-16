@@ -1,369 +1,248 @@
-import { 
-  Espacio, 
-  Recurso, 
-  Incidencia, 
-  Reserva, 
-  Prestamo, 
-  ReglasConfig, 
-  TriajeIAResponse,
-  CategoriaIncidencia,
-  PrioridadIncidencia,
+/**
+ * Único acceso a datos de la aplicación: todo va contra el backend FastAPI (/api).
+ *
+ * Conserva los nombres de funciones que usan los componentes y traduce los campos
+ * snake_case del backend a los tipos de types/domain.ts (docs/integracion-frontend.md §2 y §3).
+ * Las reglas de negocio las decide el backend: aquí no se valida nada, solo se propaga
+ * su respuesta {codigo, mensaje} como ApiError.
+ */
+import {
   AreaResolutora,
-  EstadoRecurso
+  CategoriaIncidencia,
+  Espacio,
+  EstadoRecurso,
+  Incidencia,
+  Prestamo,
+  PrioridadIncidencia,
+  Recurso,
+  ReglasConfig,
+  Reserva,
+  TriajeIAResponse
 } from '../types/domain'
-import { 
-  ESPACIOS_INICIALES, 
-  RECURSOS_INICIALES, 
-  INCIDENCIAS_INICIALES, 
-  RESERVAS_INICIALES, 
-  PRESTAMOS_INICIALES,
-  REGLAS_INICIALES 
-} from '../data/demoData'
-import { 
-  validarReservaEspacio, 
-  validarPrestamoRecurso, 
-  validarTransicionRecurso 
-} from './rulesEngine'
 
 export class ApiError extends Error {
   codigo: string
-  detalles?: unknown
+  status: number
+  detalles?: { campo: string; mensaje: string }[]
 
-  constructor(codigo: string, mensaje: string, detalles?: unknown) {
+  constructor(status: number, codigo: string, mensaje: string, detalles?: { campo: string; mensaje: string }[]) {
     super(mensaje)
+    this.status = status
     this.codigo = codigo
     this.detalles = detalles
   }
 }
 
-// In-memory demo store
-let storeEspacios: Espacio[] = [...ESPACIOS_INICIALES]
-let storeRecursos: Recurso[] = [...RECURSOS_INICIALES]
-let storeIncidencias: Incidencia[] = [...INCIDENCIAS_INICIALES]
-let storeReservas: Reserva[] = [...RESERVAS_INICIALES]
-let storePrestamos: Prestamo[] = [...PRESTAMOS_INICIALES]
-let storeReglas: ReglasConfig = { ...REGLAS_INICIALES }
+async function pedir<T>(ruta: string, init: RequestInit = {}): Promise<T> {
+  let res: Response
+  try {
+    res = await fetch(`/api${ruta}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init.headers || {}) }
+    })
+  } catch {
+    throw new ApiError(0, 'RED', 'No hay conexión con el servidor.')
+  }
+  const cuerpo = await res.json().catch(() => null)
+  if (!res.ok) {
+    if (!cuerpo || res.status === 502 || res.status === 504) {
+      throw new ApiError(res.status, 'RED', 'El servidor no está disponible.')
+    }
+    const detalles = cuerpo.detalles as { campo: string; mensaje: string }[] | undefined
+    const mensaje = detalles?.length
+      ? `${cuerpo.mensaje}: ${detalles.map(d => `${d.campo} (${d.mensaje})`).join(', ')}`
+      : cuerpo.mensaje || 'Error inesperado.'
+    throw new ApiError(res.status, cuerpo.codigo || `HTTP-${res.status}`, mensaje, detalles)
+  }
+  return cuerpo as T
+}
 
-let modoDemoForzado = true
-let backendOnline = false
+const post = <T>(ruta: string, cuerpo?: unknown) =>
+  pedir<T>(ruta, { method: 'POST', body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo) })
+const patch = <T>(ruta: string, cuerpo: unknown) => pedir<T>(ruta, { method: 'PATCH', body: JSON.stringify(cuerpo) })
+
+// ---------- Formas del backend ----------
+
+interface EspacioApi { id: string; nombre: string; tipo: Espacio['tipo']; aforo: number; aforo_permitido?: number; estado: Espacio['estado']; ubicacion: string | null }
+interface RecursoApi { id: string; tipo: string; nombre: string | null; serial: string | null; estado: EstadoRecurso; espacio_id: string | null }
+interface ReservaApi { id: number; espacio_id: string; solicitante: string; inicio: string; fin: string; asistentes: number; estado: Reserva['estado']; creada_en: string }
+interface PrestamoApi { id: number; recurso_id: string; solicitante: string; salida: string; devolucion_esperada: string; devolucion_real: string | null; estado: Prestamo['estado'] }
+interface IncidenciaApi {
+  id: number; titulo: string; descripcion: string
+  categoria: CategoriaIncidencia | null; prioridad: PrioridadIncidencia | null; area_responsable: AreaResolutora | null
+  estado: Incidencia['estado']; espacio_id: string | null; recurso_id: string | null
+  origen_triaje: Incidencia['origenTriaje']; confianza_ia: number | null; justificacion_ia: string | null; creada_en: string
+}
+interface TriajeApi {
+  categoria: CategoriaIncidencia; prioridad: PrioridadIncidencia; area_responsable: AreaResolutora
+  justificacion: string; confianza: number; requiere_revision: boolean
+}
+
+// Caché ligera de nombres para completar relaciones (espacio de una reserva, recurso de un préstamo).
+let espaciosCache: EspacioApi[] = []
+let recursosCache: RecursoApi[] = []
+const nombreEspacio = (id: string | null) => espaciosCache.find(e => e.id === id)?.nombre ?? id ?? undefined
+const recursoPorId = (id: string) => recursosCache.find(r => r.id === id)
+
+const aEspacio = (e: EspacioApi): Espacio => ({
+  id: e.id,
+  nombre: e.nombre,
+  tipo: e.tipo,
+  estado: e.estado,
+  capacidad: e.aforo,
+  aforoPermitido: e.aforo_permitido ?? e.aforo,
+  ubicacion: e.ubicacion ?? undefined
+})
+
+const aReserva = (r: ReservaApi): Reserva => ({
+  id: String(r.id),
+  espacioId: r.espacio_id,
+  espacioNombre: nombreEspacio(r.espacio_id) ?? r.espacio_id,
+  solicitanteNombre: r.solicitante,
+  horaInicio: r.inicio,
+  horaFin: r.fin,
+  numPersonas: r.asistentes,
+  estado: r.estado,
+  creadaEn: r.creada_en
+})
+
+const aPrestamo = (p: PrestamoApi): Prestamo => {
+  const rec = recursoPorId(p.recurso_id)
+  return {
+    id: String(p.id),
+    recursoId: p.recurso_id,
+    recursoNombre: rec?.nombre || rec?.tipo || p.recurso_id,
+    recursoCodigo: p.recurso_id,
+    solicitanteNombre: p.solicitante,
+    fechaPrestamo: p.salida,
+    fechaEstimadaDevolucion: p.devolucion_esperada,
+    fechaDevolucionReal: p.devolucion_real ?? undefined,
+    estado: p.estado
+  }
+}
+
+const aIncidencia = (i: IncidenciaApi): Incidencia => ({
+  id: String(i.id),
+  codigo: `INC-${i.id}`,
+  titulo: i.titulo,
+  descripcion: i.descripcion,
+  espacioId: i.espacio_id ?? undefined,
+  espacioNombre: nombreEspacio(i.espacio_id),
+  recursoId: i.recurso_id ?? undefined,
+  recursoCodigo: i.recurso_id ?? undefined,
+  categoria: i.categoria,
+  prioridad: i.prioridad,
+  area: i.area_responsable,
+  estado: i.estado,
+  confianzaIA: i.confianza_ia ?? undefined,
+  razonamientoIA: i.justificacion_ia ?? undefined,
+  origenTriaje: i.origen_triaje,
+  timestamp: i.creada_en
+})
 
 export const apiClient = {
-  getModoDemo: () => modoDemoForzado,
-  setModoDemo: (val: boolean) => { modoDemoForzado = val },
-  isBackendOnline: () => backendOnline,
-
-  async checkHealth(): Promise<{ estado: string; modo: 'live' | 'demo' }> {
-    try {
-      const res = await fetch('/api/health', { signal: AbortSignal.timeout(2000) })
-      if (res.ok) {
-        backendOnline = true
-        return { estado: 'ok', modo: modoDemoForzado ? 'demo' : 'live' }
-      }
-    } catch {
-      backendOnline = false
-    }
-    return { estado: 'offline', modo: 'demo' }
+  async checkHealth(): Promise<{ estado: string }> {
+    return pedir('/health')
   },
 
-  async getReglas(): Promise<ReglasConfig> {
-    if (!modoDemoForzado && backendOnline) {
-      try {
-        const res = await fetch('/api/reglas')
-        if (res.ok) return await res.json()
-      } catch {
-        // fallback to store
-      }
-    }
-    return { ...storeReglas }
-  },
-
-  async updateReglas(nuevas: Partial<ReglasConfig>): Promise<ReglasConfig> {
-    storeReglas = { ...storeReglas, ...nuevas }
-    return { ...storeReglas }
+  getReglas(): Promise<ReglasConfig> {
+    return pedir<ReglasConfig>('/reglas')
   },
 
   async getEspacios(): Promise<Espacio[]> {
-    // Sincronizar estado inhabilitado si hay incidencia crítica
-    return storeEspacios.map(esp => {
-      const incCritica = storeIncidencias.find(
-        i => i.espacioId === esp.id && 
-             i.estado !== 'resuelta' && 
-             storeReglas.prioridades_bloqueantes.includes(i.prioridad)
-      )
-      if (incCritica) {
-        return { 
-          ...esp, 
-          estado: 'inhabilitado', 
-          incidenciaActivaId: incCritica.id,
-          colorTema: '#EF4444'
-        }
-      }
-      return esp
-    })
+    espaciosCache = await pedir<EspacioApi[]>('/espacios')
+    return espaciosCache.map(aEspacio)
   },
 
-  async getRecursos(): Promise<Recurso[]> {
-    return [...storeRecursos]
-  },
-
-  async getIncidencias(): Promise<Incidencia[]> {
-    return [...storeIncidencias]
+  async getRecursos(prestamosActivos: Prestamo[] = []): Promise<Recurso[]> {
+    recursosCache = await pedir<RecursoApi[]>('/recursos')
+    return recursosCache.map(r => ({
+      id: r.id,
+      codigo: r.id,
+      nombre: r.nombre || r.tipo,
+      tipo: r.tipo,
+      estado: r.estado,
+      serial: r.serial ?? undefined,
+      espacioActualId: r.espacio_id ?? undefined,
+      espacioActualNombre: nombreEspacio(r.espacio_id),
+      solicitanteActual: prestamosActivos.find(p => p.recursoId === r.id && p.estado === 'activo')?.solicitanteNombre
+    }))
   },
 
   async getReservas(): Promise<Reserva[]> {
-    return [...storeReservas]
+    return (await pedir<ReservaApi[]>('/reservas')).map(aReserva)
   },
 
   async getPrestamos(): Promise<Prestamo[]> {
-    return [...storePrestamos]
+    return (await pedir<PrestamoApi[]>('/prestamos')).map(aPrestamo)
   },
 
+  async getIncidencias(): Promise<Incidencia[]> {
+    return (await pedir<IncidenciaApi[]>('/incidencias')).map(aIncidencia)
+  },
+
+  /** `inicio`/`fin` en formato YYYY-MM-DDTHH:MM (hora local). */
   async crearReserva(datos: {
     espacioId: string
     solicitanteNombre: string
-    solicitanteEmail: string
-    horaInicio: string
-    horaFin: string
+    inicio: string
+    fin: string
     numPersonas: number
-    motivo: string
   }): Promise<Reserva> {
-    const espaciosActuales = await this.getEspacios()
-    const espacio = espaciosActuales.find(e => e.id === datos.espacioId)
-    if (!espacio) {
-      throw new ApiError('ERR-404', 'El espacio seleccionado no existe.')
-    }
-
-    // Validar con RN-01 y RN-04
-    const validacion = validarReservaEspacio(
-      espacio,
-      datos,
-      storeReservas,
-      storeIncidencias,
-      storeReglas
-    )
-
-    if (!validacion.valido) {
-      throw new ApiError(validacion.codigo, validacion.mensaje)
-    }
-
-    const nuevaReserva: Reserva = {
-      id: `RES-${Date.now().toString().slice(-4)}`,
-      espacioId: espacio.id,
-      espacioNombre: espacio.nombre,
-      solicitanteNombre: datos.solicitanteNombre,
-      solicitanteEmail: datos.solicitanteEmail,
-      horaInicio: datos.horaInicio,
-      horaFin: datos.horaFin,
-      numPersonas: datos.numPersonas,
-      motivo: datos.motivo,
-      estado: 'activa',
-      creadaEn: new Date().toISOString().replace('T', ' ').slice(0, 19)
-    }
-
-    storeReservas = [nuevaReserva, ...storeReservas]
-    return nuevaReserva
+    const r = await post<ReservaApi>('/reservas', {
+      espacio_id: datos.espacioId,
+      solicitante: datos.solicitanteNombre,
+      inicio: datos.inicio,
+      fin: datos.fin,
+      asistentes: datos.numPersonas
+    })
+    return aReserva(r)
   },
 
+  async cancelarReserva(reservaId: string): Promise<Reserva> {
+    return aReserva(await post<ReservaApi>(`/reservas/${reservaId}/cancelar`))
+  },
+
+  /** `fechaEstimadaDevolucion` en formato YYYY-MM-DDTHH:MM (hora local). */
   async crearPrestamo(datos: {
     recursoId: string
     solicitanteNombre: string
-    solicitanteEmail: string
     fechaEstimadaDevolucion: string
   }): Promise<Prestamo> {
-    const recurso = storeRecursos.find(r => r.id === datos.recursoId)
-    if (!recurso) {
-      throw new ApiError('ERR-404', 'El recurso solicitado no existe.')
-    }
-
-    // Validar RN-02 y RN-04
-    const validacion = validarPrestamoRecurso(
-      recurso,
-      datos.solicitanteEmail,
-      storePrestamos,
-      storeIncidencias,
-      storeReglas
-    )
-
-    if (!validacion.valido) {
-      throw new ApiError(validacion.codigo, validacion.mensaje)
-    }
-
-    // Validar transición RN-03 a 'prestado'
-    const trans = validarTransicionRecurso(recurso.estado, 'prestado')
-    if (!trans.valido) {
-      throw new ApiError(trans.codigo, trans.mensaje)
-    }
-
-    const nuevoPrestamo: Prestamo = {
-      id: `PRES-${Date.now().toString().slice(-4)}`,
-      recursoId: recurso.id,
-      recursoNombre: recurso.nombre,
-      recursoCodigo: recurso.codigo,
-      solicitanteNombre: datos.solicitanteNombre,
-      solicitanteEmail: datos.solicitanteEmail,
-      fechaPrestamo: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      fechaEstimadaDevolucion: datos.fechaEstimadaDevolucion,
-      estado: 'activo'
-    }
-
-    // Actualizar estado del recurso
-    storeRecursos = storeRecursos.map(r => 
-      r.id === recurso.id 
-        ? { ...r, estado: 'prestado', solicitanteActual: datos.solicitanteEmail }
-        : r
-    )
-
-    storePrestamos = [nuevoPrestamo, ...storePrestamos]
-    return nuevoPrestamo
-  },
-
-  async actualizarEstadoRecurso(recursoId: string, nuevoEstado: EstadoRecurso): Promise<Recurso> {
-    const recurso = storeRecursos.find(r => r.id === recursoId)
-    if (!recurso) {
-      throw new ApiError('ERR-404', 'Recurso no encontrado.')
-    }
-
-    const validacion = validarTransicionRecurso(recurso.estado, nuevoEstado)
-    if (!validacion.valido) {
-      throw new ApiError(validacion.codigo, validacion.mensaje)
-    }
-
-    storeRecursos = storeRecursos.map(r => {
-      if (r.id === recursoId) {
-        return {
-          ...r,
-          estado: nuevoEstado,
-          solicitanteActual: nuevoEstado === 'prestado' ? r.solicitanteActual : undefined
-        }
-      }
-      return r
+    const p = await post<PrestamoApi>('/prestamos', {
+      recurso_id: datos.recursoId,
+      solicitante: datos.solicitanteNombre,
+      devolucion_esperada: datos.fechaEstimadaDevolucion
     })
-
-    return storeRecursos.find(r => r.id === recursoId)!
+    return aPrestamo(p)
   },
 
-  async devolverPrestamo(prestamoId: string, estadoEntrega: 'optimo' | 'danado'): Promise<void> {
-    const prestamo = storePrestamos.find(p => p.id === prestamoId)
-    if (!prestamo) throw new ApiError('ERR-404', 'Préstamo no encontrado.')
-
-    storePrestamos = storePrestamos.map(p => 
-      p.id === prestamoId ? { ...p, estado: 'devuelto' } : p
-    )
-
-    const nuevoEstado: EstadoRecurso = estadoEntrega === 'danado' ? 'danado' : 'disponible'
-    storeRecursos = storeRecursos.map(r => 
-      r.id === prestamo.recursoId ? { ...r, estado: nuevoEstado, solicitanteActual: undefined } : r
-    )
+  async actualizarEstadoRecurso(recursoId: string, nuevoEstado: EstadoRecurso, motivo?: string): Promise<Recurso> {
+    const r = await patch<RecursoApi>(`/recursos/${recursoId}/estado`, { estado: nuevoEstado, motivo })
+    return { id: r.id, codigo: r.id, nombre: r.nombre || r.tipo, tipo: r.tipo, estado: r.estado }
   },
 
-  async triajeConIA(texto: string): Promise<TriajeIAResponse> {
-    const lower = texto.toLowerCase()
-    
-    // Heurística de Triaje de IA con procesamiento de lenguaje natural semántico
-    let categoria: CategoriaIncidencia = 'otro'
-    let prioridad: PrioridadIncidencia = 'baja'
-    let area: AreaResolutora = 'administracion'
-    let confianza = 0.85
-    let razonamiento = ''
-    let sugerenciaAccion = ''
+  async devolverPrestamo(prestamoId: string, estadoEntrega: 'optimo' | 'danado'): Promise<Prestamo> {
+    const p = await post<PrestamoApi>(`/prestamos/${prestamoId}/devolucion`, {
+      estado_recurso: estadoEntrega === 'danado' ? 'danado' : 'disponible'
+    })
+    return aPrestamo(p)
+  },
 
-    if (
-      lower.includes('humo') || 
-      lower.includes('fuego') || 
-      lower.includes('chispa') || 
-      lower.includes('corto') || 
-      lower.includes('calor') || 
-      lower.includes('aire acondicionado') ||
-      lower.includes('breaker') ||
-      lower.includes('inund') ||
-      lower.includes('gotera')
-    ) {
-      categoria = 'infraestructura'
-      prioridad = (lower.includes('humo') || lower.includes('chispa') || lower.includes('fuego') || lower.includes('breaker')) 
-        ? 'critica' 
-        : 'alta'
-      area = 'mantenimiento'
-      confianza = 0.94
-      razonamiento = 'Se detectaron palabras de alto riesgo físico y térmico que comprometen la infraestructura y seguridad del campus.'
-      sugerenciaAccion = prioridad === 'critica' 
-        ? 'Bloquear inmediatamente el espacio afectado (RN-04) y despachar cuadrilla de emergencia técnica.'
-        : 'Programar inspección técnica y restringir uso de tomas eléctricas secundarias.'
-    } else if (
-      lower.includes('internet') || 
-      lower.includes('wifi') || 
-      lower.includes('fibra') || 
-      lower.includes('red') || 
-      lower.includes('switch') || 
-      lower.includes('latencia') ||
-      lower.includes('conexion')
-    ) {
-      categoria = 'conectividad'
-      prioridad = lower.includes('caida general') || lower.includes('todo el piso') ? 'critica' : 'alta'
-      area = 'soporte_ti'
-      confianza = 0.92
-      razonamiento = 'Falla de telecomunicaciones que impacta el desarrollo de actividades académicas o pruebas en vivo.'
-      sugerenciaAccion = 'Monitorear throughput de switch PoE y reiniciar enlace secundario de fibra.'
-    } else if (
-      lower.includes('laptop') || 
-      lower.includes('pantalla') || 
-      lower.includes('monitor') || 
-      lower.includes('teclado') || 
-      lower.includes('mouse') ||
-      lower.includes('bateria') ||
-      lower.includes('visor') ||
-      lower.includes('camara')
-    ) {
-      categoria = 'equipo_tecnologico'
-      prioridad = lower.includes('bateria hinchada') ? 'alta' : 'media'
-      area = 'soporte_ti'
-      confianza = 0.90
-      razonamiento = 'Anomalía o falla de hardware en equipo tecnológico inventariado.'
-      sugerenciaAccion = 'Aislar el equipo, marcar como DAÑADO en inventario (RN-03) e iniciar trámite de garantía.'
-    } else if (
-      lower.includes('basura') || 
-      lower.includes('sucio') || 
-      lower.includes('derrame') || 
-      lower.includes('cafe') || 
-      lower.includes('limpieza')
-    ) {
-      categoria = 'limpieza'
-      prioridad = 'media'
-      area = 'mantenimiento'
-      confianza = 0.88
-      razonamiento = 'Incidencia sanitaria o de orden que no compromete equipos críticos pero afecta la habitabilidad.'
-      sugerenciaAccion = 'Notificar a personal de aseo y servicios generales para aseo correctivo.'
-    } else if (
-      lower.includes('pelea') || 
-      lower.includes('robo') || 
-      lower.includes('perdida') || 
-      lower.includes('puerta') || 
-      lower.includes('llave')
-    ) {
-      categoria = 'seguridad'
-      prioridad = 'alta'
-      area = 'seguridad'
-      confianza = 0.89
-      razonamiento = 'Vulnerabilidad de acceso o seguridad física dentro del campus.'
-      sugerenciaAccion = 'Revisar grabaciones del circuito cerrado de TV y alertar a guardia de turno.'
-    } else {
-      categoria = 'otro'
-      prioridad = 'baja'
-      area = 'administracion'
-      confianza = 0.55 // Por debajo del umbral 0.60 para demostrar regla de revisión humana
-      razonamiento = 'La descripción es ambigua o no contiene términos clave concluyentes del catálogo operativo.'
-      sugerenciaAccion = 'Requiere triaje manual y confirmación por parte de un operador de campus.'
-    }
-
-    const requiereRevisionHumana = confianza < storeReglas.umbral_confianza_ia
-
+  /** Triaje con IA real en el backend. Si la IA no está disponible responde 503 (IA-503). */
+  async triajeConIA(descripcion: string, contexto: { espacioId?: string; recursoId?: string } = {}): Promise<TriajeIAResponse> {
+    const t = await post<TriajeApi>('/incidencias/triaje', {
+      descripcion,
+      espacio_id: contexto.espacioId || undefined,
+      recurso_id: contexto.recursoId || undefined
+    })
     return {
-      categoria,
-      prioridad,
-      area,
-      confianza,
-      razonamiento,
-      sugerenciaAccion,
-      requiereRevisionHumana
+      categoria: t.categoria,
+      prioridad: t.prioridad,
+      area: t.area_responsable,
+      confianza: t.confianza,
+      razonamiento: t.justificacion,
+      requiereRevisionHumana: t.requiere_revision
     }
   },
 
@@ -375,77 +254,26 @@ export const apiClient = {
     categoria: CategoriaIncidencia
     prioridad: PrioridadIncidencia
     area: AreaResolutora
-    confianzaIA: number
-    razonamientoIA: string
-    sugerenciaAccion: string
     origenTriaje: 'ia' | 'manual'
+    confianzaIA?: number
+    razonamientoIA?: string
   }): Promise<Incidencia> {
-    const espacio = datos.espacioId ? storeEspacios.find(e => e.id === datos.espacioId) : undefined
-    const recurso = datos.recursoId ? storeRecursos.find(r => r.id === datos.recursoId) : undefined
-
-    const nuevaIncidencia: Incidencia = {
-      id: `INC-${Date.now().toString().slice(-4)}`,
-      codigo: `INC-2026-${Math.floor(100 + Math.random() * 900)}`,
+    const i = await post<IncidenciaApi>('/incidencias', {
       titulo: datos.titulo,
       descripcion: datos.descripcion,
-      espacioId: datos.espacioId,
-      espacioNombre: espacio?.nombre,
-      recursoId: datos.recursoId,
-      recursoCodigo: recurso?.codigo,
+      espacio_id: datos.espacioId || undefined,
+      recurso_id: datos.recursoId || undefined,
       categoria: datos.categoria,
       prioridad: datos.prioridad,
-      area: datos.area,
-      estado: 'abierta',
-      confianzaIA: datos.confianzaIA,
-      razonamientoIA: datos.razonamientoIA,
-      sugerenciaAccion: datos.sugerenciaAccion,
-      origenTriaje: datos.origenTriaje,
-      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19)
-    }
-
-    // RN-04: Si la incidencia es crítica/alta sobre un espacio, inhabilitar el espacio
-    if (espacio && storeReglas.prioridades_bloqueantes.includes(datos.prioridad)) {
-      storeEspacios = storeEspacios.map(e => 
-        e.id === espacio.id 
-          ? { ...e, estado: 'inhabilitado', colorTema: '#EF4444', incidenciaActivaId: nuevaIncidencia.id }
-          : e
-      )
-    }
-
-    // Si es sobre un recurso, marcarlo como dañado
-    if (recurso && (datos.prioridad === 'critica' || datos.prioridad === 'alta')) {
-      storeRecursos = storeRecursos.map(r =>
-        r.id === recurso.id ? { ...r, estado: 'danado' } : r
-      )
-    }
-
-    storeIncidencias = [nuevaIncidencia, ...storeIncidencias]
-    return nuevaIncidencia
+      area_responsable: datos.area,
+      origen_triaje: datos.origenTriaje,
+      confianza_ia: datos.origenTriaje === 'ia' ? datos.confianzaIA : undefined,
+      justificacion_ia: datos.origenTriaje === 'ia' ? datos.razonamientoIA : undefined
+    })
+    return aIncidencia(i)
   },
 
   async resolverIncidencia(incidenciaId: string): Promise<Incidencia> {
-    const inc = storeIncidencias.find(i => i.id === incidenciaId)
-    if (!inc) throw new ApiError('ERR-404', 'Incidencia no encontrada.')
-
-    storeIncidencias = storeIncidencias.map(i => 
-      i.id === incidenciaId ? { ...i, estado: 'resuelta' } : i
-    )
-
-    // Si el espacio no tiene más incidencias críticas, reactivarlo
-    if (inc.espacioId) {
-      const otrasCriticas = storeIncidencias.find(
-        i => i.espacioId === inc.espacioId && 
-             i.id !== incidenciaId && 
-             i.estado !== 'resuelta' && 
-             storeReglas.prioridades_bloqueantes.includes(i.prioridad)
-      )
-      if (!otrasCriticas) {
-        storeEspacios = storeEspacios.map(e => 
-          e.id === inc.espacioId ? { ...e, estado: 'disponible', colorTema: '#10B981', incidenciaActivaId: undefined } : e
-        )
-      }
-    }
-
-    return storeIncidencias.find(i => i.id === incidenciaId)!
+    return aIncidencia(await patch<IncidenciaApi>(`/incidencias/${incidenciaId}`, { estado: 'resuelta' }))
   }
 }
