@@ -1,6 +1,6 @@
 # Guion de demo, modificación en vivo y defensa
 
-Todo lo de aquí está probado contra el backend de `develop` (incidencias: PR #3).
+Todo lo de aquí está probado contra el backend de `develop`.
 Las acciones se hacen en la UI; si la UI falla, cada paso tiene su equivalente en `http://localhost:8000/docs`.
 
 ---
