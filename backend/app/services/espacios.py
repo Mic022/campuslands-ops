@@ -3,12 +3,13 @@ from datetime import date, datetime, time, timedelta
 
 from sqlmodel import Session, select
 
-from app.config.catalogos import EstadoEspacio, EstadoReserva
+from app.config.catalogos import EstadoIncidencia, EstadoReserva
 from app.ingest.mapeo import slug
-from app.models import Espacio, Reserva, ahora
+from app.models import Espacio, Incidencia, Reserva, ahora
 from app.repositories.auditoria import auditar
 from app.rules import espacios as reglas
 from app.rules.base import NoEncontradoError, ResultadoRegla, ReglaNegocioError
+from app.rules.bloqueos import validar_espacio_operable
 from app.schemas.espacios import EspacioActualizar, EspacioCrear, ReservaCrear
 from app.services.transaccion import escritura
 
@@ -143,16 +144,20 @@ def _reservas_activas_que_cruzan(db: Session, espacio_id: str, inicio: datetime,
     )
 
 
-def _verificar_bloqueo_espacio(db: Session, espacio: Espacio) -> None:
-    """Parte de RN-04 (dueño: P3): un espacio que no está disponible no se reserva.
+def incidencias_abiertas_del_espacio(db: Session, espacio_id: str) -> list[Incidencia]:
+    return list(db.exec(
+        select(Incidencia).where(
+            Incidencia.espacio_id == espacio_id,
+            Incidencia.estado != EstadoIncidencia.resuelta.value,
+        )
+    ))
 
-    Punto de integración: P3 conecta aquí rules/integracion.py para bloquear
-    también por incidencias abiertas de prioridad bloqueante.
-    """
-    if espacio.estado != EstadoEspacio.disponible.value:
-        _exigir(ResultadoRegla(
-            False, "RN-04", f"El espacio '{espacio.nombre}' está en '{espacio.estado}' y no admite reservas.",
-        ))
+
+def _verificar_bloqueo_espacio(db: Session, espacio: Espacio) -> None:
+    """RN-04: no se reserva un espacio fuera de servicio o con una incidencia bloqueante abierta."""
+    _exigir(validar_espacio_operable(
+        espacio.nombre, espacio.estado, incidencias_abiertas_del_espacio(db, espacio.id)
+    ))
 
 
 def crear_reserva(db: Session, datos: ReservaCrear) -> Reserva:
