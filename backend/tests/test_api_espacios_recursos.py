@@ -256,3 +256,39 @@ def test_prestamos_vencidos(client, portatil):
         json={"recurso_id": "PC-01", "solicitante": "ana", "salida": "2020-01-01T08:00", "devolucion_esperada": "2020-01-01T10:00"},
     )
     assert len(client.get("/api/prestamos?vencidos=true").json()) == 1
+
+
+# ---------- RN-04: bloqueo por incidencia abierta ----------
+
+def crear_incidencia(engine, prioridad, estado="abierta", **destino):
+    from app.models import Incidencia
+
+    with Session(engine) as s:
+        inc = Incidencia(titulo="Falla", descripcion="x", prioridad=prioridad, estado=estado, **destino)
+        s.add(inc)
+        s.commit()
+        return inc.id
+
+
+def test_rn04_incidencia_critica_bloquea_reserva(client, engine, sala):
+    crear_incidencia(engine, "critica", espacio_id=sala["id"])
+    r = reservar(client, sala["id"])
+    assert (r.status_code, r.json()["codigo"]) == (409, "RN-04")
+
+
+def test_rn04_incidencia_baja_o_resuelta_no_bloquea_reserva(client, engine, sala):
+    crear_incidencia(engine, "baja", espacio_id=sala["id"])
+    crear_incidencia(engine, "critica", "resuelta", espacio_id=sala["id"])
+    assert reservar(client, sala["id"]).status_code == 201
+
+
+def test_rn04_incidencia_alta_bloquea_prestamo(client, engine, portatil):
+    crear_incidencia(engine, "alta", recurso_id="PC-01")
+    r = prestar(client, "PC-01")
+    assert (r.status_code, r.json()["codigo"]) == (409, "RN-04")
+    assert client.get("/api/recursos/PC-01").json()["estado"] == "disponible"
+
+
+def test_rn04_recurso_en_mantenimiento_no_se_presta(client, portatil):
+    client.patch("/api/recursos/PC-01/estado", json={"estado": "mantenimiento"})
+    assert prestar(client, "PC-01").json()["codigo"] == "RN-04"

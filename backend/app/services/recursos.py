@@ -2,12 +2,13 @@
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.config.catalogos import EstadoPrestamo, EstadoRecurso
+from app.config.catalogos import EstadoIncidencia, EstadoPrestamo, EstadoRecurso
 from app.ingest.normalizar import clave
-from app.models import Espacio, Prestamo, Recurso, ahora
+from app.models import Espacio, Incidencia, Prestamo, Recurso, ahora
 from app.repositories.auditoria import auditar
 from app.rules import recursos as reglas
 from app.rules.base import NoEncontradoError, ResultadoRegla, ReglaNegocioError
+from app.rules.bloqueos import validar_recurso_operable
 from app.schemas.recursos import CambioEstadoRecurso, DevolucionCrear, PrestamoCrear, RecursoActualizar, RecursoCrear
 from app.services.transaccion import escritura
 
@@ -101,6 +102,15 @@ def cambiar_estado(db: Session, recurso_id: str, datos: CambioEstadoRecurso, act
 
 # ---------- Préstamos ----------
 
+def incidencias_abiertas_del_recurso(db: Session, recurso_id: str) -> list[Incidencia]:
+    return list(db.exec(
+        select(Incidencia).where(
+            Incidencia.recurso_id == recurso_id,
+            Incidencia.estado != EstadoIncidencia.resuelta.value,
+        )
+    ))
+
+
 def _clave_solicitante(solicitante: str) -> str:
     """'  Ana PÉREZ ' y 'ana perez' son la misma persona.
 
@@ -145,6 +155,10 @@ def crear_prestamo(db: Session, datos: PrestamoCrear) -> Prestamo:
     with escritura(db):
         recurso = obtener_recurso(db, datos.recurso_id)
         salida = datos.salida or ahora()
+        # RN-04: fuera de servicio o con incidencia bloqueante abierta, no se presta.
+        _exigir(validar_recurso_operable(
+            recurso.nombre or recurso.id, recurso.estado, incidencias_abiertas_del_recurso(db, recurso.id)
+        ))
         # RN-03: solo un recurso 'disponible' puede pasar a 'prestado'.
         transicion = reglas.validar_transicion(recurso.estado, EstadoRecurso.prestado.value)
         if not transicion.ok:
