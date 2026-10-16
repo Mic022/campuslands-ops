@@ -48,6 +48,6 @@ export const Muestra: React.FC<{ color: string; className?: string }> = ({ color
 )
 
 export const panel =
-  'rounded-2xl border border-indigo-200/15 bg-gradient-to-br from-[#0E1530]/85 via-[#0A0F24]/85 to-[#070A18]/90 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl'
+  'rounded-2xl border border-indigo-200/15 bg-gradient-to-br from-[#0E1530]/95 via-[#0A0F24]/95 to-[#070A18]/[0.97] shadow-[0_24px_60px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)]'
 export const boton =
   'inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/70 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer'

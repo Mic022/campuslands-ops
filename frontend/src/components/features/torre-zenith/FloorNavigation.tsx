@@ -43,7 +43,7 @@ const Separador = () => <span className="mx-0.5 h-px w-6 shrink-0 self-center bg
 
 /** Controles de cámara y capas de la escena. */
 export const FloorNavigation: React.FC<FloorNavigationProps> = p => (
-  <nav className="flex gap-1.5 overflow-x-auto rounded-xl border border-slate-700/70 bg-slate-950/80 p-1.5 shadow-2xl backdrop-blur-xl sm:flex-col">
+  <nav className="flex gap-1.5 overflow-x-auto rounded-xl border border-slate-700/70 bg-slate-950/95 p-1.5 shadow-2xl sm:flex-col">
     <Boton titulo="Restablecer cámara" onClick={p.onReiniciar}><RotateCcw className="h-4 w-4" /></Boton>
     <Boton titulo="Vista 3D" activo={p.vista === '3d'} onClick={() => p.onVista('3d')}><Box className="h-4 w-4" /></Boton>
     <Boton titulo="Vista superior (plano)" activo={p.vista === 'superior'} onClick={() => p.onVista('superior')}><Map className="h-4 w-4" /></Boton>

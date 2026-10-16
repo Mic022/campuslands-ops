@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Grid } from '@react-three/drei'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Grid, PerformanceMonitor } from '@react-three/drei'
 import { SALAS_GEOMETRIA } from '../../data/torreZenithNivel6'
 import { EstadoVisual, SalaId } from '../../types/torreZenith'
 import { BuildingShell } from './BuildingShell'
@@ -17,7 +17,29 @@ interface FloorPlan3DProps {
   mostrarNombres: boolean
   murosVisibles: boolean
   comando: ComandoCamara | null
+  /** false cuando el visor no está en pantalla: se deja de renderizar. */
+  activo?: boolean
   onSeleccionar: (id: SalaId) => void
+}
+
+/**
+ * Las luces y casi toda la geometría son estáticas: el mapa de sombras se recalcula solo al cargar
+ * y mientras los muros suben o bajan, no en cada fotograma.
+ */
+const SombrasEstaticas: React.FC<{ version: boolean }> = ({ version }) => {
+  const gl = useThree(s => s.gl)
+  const restantes = useRef(90)
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false
+    restantes.current = 90 // ~1,5 s: dura la animación de altura de los muros
+  }, [gl, version])
+  useFrame(() => {
+    if (restantes.current > 0) {
+      restantes.current--
+      gl.shadowMap.needsUpdate = true
+    }
+  })
+  return null
 }
 
 /** Escena 3D del Nivel 6 de Torre Zenith: un único piso con sus diez salas reservables. */
@@ -28,8 +50,10 @@ export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
   mostrarNombres,
   murosVisibles,
   comando,
+  activo = true,
   onSeleccionar
 }) => {
+  const [dpr, setDpr] = useState(1.5)
   const focos = useMemo(
     () =>
       Object.fromEntries(
@@ -44,10 +68,14 @@ export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
+      dpr={Math.min(dpr, window.devicePixelRatio || 1)}
+      frameloop={activo ? 'always' : 'never'}
       camera={{ fov: 36, near: 0.5, far: 400, position: POSE_INICIAL.toArray() }}
-      gl={{ antialias: true }}
+      gl={{ antialias: true, powerPreference: 'high-performance', stencil: false }}
     >
+      {/* Si el equipo no sostiene la tasa de fotogramas, baja la resolución a 1×. */}
+      <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.5)} flipflops={3} onFallback={() => setDpr(1)} />
+      <SombrasEstaticas version={murosVisibles} />
       <color attach="background" args={['#03050D']} />
       <SpaceBackdrop />
 
@@ -57,7 +85,7 @@ export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
         position={[18, 34, 22]}
         intensity={1.6}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1536, 1536]}
         shadow-camera-left={-34}
         shadow-camera-right={34}
         shadow-camera-top={24}

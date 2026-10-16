@@ -33,8 +33,8 @@ export const RoomLabel: React.FC<RoomLabelProps> = ({ posicion, nombre, color, e
         }`}
       >
         <span
-          className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur-md ${
-            seleccionada ? 'border-cyan-300/80 bg-slate-900/90 shadow-cyan-500/30' : 'border-slate-600/70 bg-slate-900/75'
+          className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2 py-1 text-[11px] font-semibold text-white shadow-lg ${
+            seleccionada ? 'border-cyan-300/80 bg-slate-900/90 shadow-cyan-500/30' : 'border-slate-600/70 bg-slate-900/90'
           }`}
         >
           <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-white/40" style={{ background: color }} />

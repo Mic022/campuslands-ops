@@ -45,6 +45,16 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
   const [admin, setAdmin] = useState(false)
   const [version, setVersion] = useState(0)
   const webgl = useMemo(soportaWebGL, [])
+  // El 3D solo se dibuja mientras el visor está en pantalla.
+  const contenedor = useRef<HTMLDivElement>(null)
+  const [enPantalla, setEnPantalla] = useState(true)
+  useEffect(() => {
+    const el = contenedor.current
+    if (!el || !('IntersectionObserver' in window)) return
+    const obs = new IntersectionObserver(([e]) => setEnPantalla(e.isIntersecting), { rootMargin: '400px 0px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
   const n = useRef(0)
 
   const camara = (c: PeticionCamara) => setComando({ ...c, n: ++n.current })
@@ -118,7 +128,7 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
   const consultaActual = carga === 'ok' && datos ? datos.consulta : null
 
   return (
-    <div className="marco-espacial relative h-[calc(100dvh-9rem)] min-h-[600px] w-full overflow-hidden rounded-2xl bg-[#03050D]">
+    <div ref={contenedor} className="marco-espacial relative h-[calc(100dvh-9rem)] min-h-[600px] w-full overflow-hidden rounded-2xl bg-[#03050D]">
       {webgl ? (
         <Suspense
           fallback={
@@ -135,6 +145,7 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
             mostrarNombres={mostrarNombres}
             murosVisibles={murosVisibles}
             comando={comando}
+            activo={enPantalla}
             onSeleccionar={id => elegir(id)}
           />
         </Suspense>
