@@ -1,22 +1,26 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Building2, Laptop, Sparkles, Sliders, Orbit, Siren } from 'lucide-react'
+import { Building2, Laptop, Sparkles, Sliders, Orbit, Siren, UsersRound } from 'lucide-react'
 import { Brand } from './Brand'
+import { MenuUsuario } from './MenuUsuario'
 
-export type TabType = '3d-twin' | 'spaces' | 'resources' | 'incidents' | 'jury'
+export type TabType = '3d-twin' | 'spaces' | 'resources' | 'incidents' | 'jury' | 'admin'
 
 interface NavbarProps {
   activeTab: TabType
   onSelectTab: (tab: TabType) => void
   onOpenReportModal: () => void
   incidenciasCriticasCount: number
+  /** La pestaña de administración solo se muestra al rol admin (el backend también lo exige). */
+  esAdmin: boolean
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenReportModal,
-  incidenciasCriticasCount
+  incidenciasCriticasCount,
+  esAdmin
 }) => {
   const tabs: { id: TabType; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: '3d-twin', label: 'Gemelo 3D', icon: <Orbit className="h-4 w-4" /> },
@@ -28,7 +32,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       icon: <Sparkles className="h-4 w-4" />,
       badge: incidenciasCriticasCount > 0 ? incidenciasCriticasCount : undefined
     },
-    { id: 'jury', label: 'Jurado', icon: <Sliders className="h-4 w-4" /> }
+    { id: 'jury', label: 'Jurado', icon: <Sliders className="h-4 w-4" /> },
+    ...(esAdmin ? [{ id: 'admin' as TabType, label: 'Usuarios', icon: <UsersRound className="h-4 w-4" /> }] : [])
   ]
 
   return (
@@ -46,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={tab.id}
                   onClick={() => onSelectTab(tab.id)}
                   aria-current={activo ? 'page' : undefined}
-                  className={`relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium transition-colors cursor-pointer ${
+                  className={`relative flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-[13px] font-medium transition-colors cursor-pointer ${
                     activo ? 'text-white' : 'text-slate-400 hover:text-slate-100'
                   }`}
                 >
@@ -78,11 +83,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenReportModal}
-              className="flex items-center gap-2 rounded-xl bg-rose-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-600/25 transition hover:bg-rose-400 cursor-pointer"
+              className="flex items-center gap-2 whitespace-nowrap rounded-xl bg-rose-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-600/25 transition hover:bg-rose-400 cursor-pointer"
             >
               <Siren className="h-4 w-4" />
-              <span className="hidden sm:inline">Reportar incidente</span>
+              <span className="hidden sm:inline lg:hidden xl:inline">Reportar incidente</span>
             </button>
+            <MenuUsuario />
           </div>
         </div>
 

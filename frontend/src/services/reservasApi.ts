@@ -13,6 +13,7 @@ import {
   SalaId,
   SalaInfo
 } from '../types/torreZenith'
+import { csrf } from './api/baseClient'
 
 export class ReservaApiError extends Error {
   codigo: string
@@ -30,14 +31,15 @@ export class ReservaApiError extends Error {
 }
 
 const TOKENS_KEY = 'zenith.reservas.tokens'
-const ADMIN_KEY = 'zenith.admin.token'
 
 async function pedir<T>(ruta: string, init: RequestInit = {}): Promise<T> {
   let res: Response
   try {
+    // La sesión (cookie HttpOnly) identifica a la persona y su rol; el CSRF protege las escrituras.
     res = await fetch(ruta, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(init.headers || {}) }
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...csrf.cabecera(init.method), ...(init.headers || {}) }
     })
   } catch {
     throw new ReservaApiError(0, 'RED', 'No hay conexión con el servidor de reservas.')
@@ -71,29 +73,6 @@ export const tokensLocales = {
   }
 }
 
-export const tokenAdmin = {
-  leer(): string | null {
-    try {
-      return sessionStorage.getItem(ADMIN_KEY)
-    } catch {
-      return null
-    }
-  },
-  guardar(token: string | null) {
-    try {
-      if (token) sessionStorage.setItem(ADMIN_KEY, token)
-      else sessionStorage.removeItem(ADMIN_KEY)
-    } catch {
-      // ignorado: el modo operador dura solo esta pestaña
-    }
-  }
-}
-
-function cabeceraAdmin(): Record<string, string> {
-  const t = tokenAdmin.leer()
-  return t ? { 'X-Admin-Token': t } : {}
-}
-
 // ---------- Endpoints ----------
 
 export const reservasApi = {
@@ -110,9 +89,7 @@ export const reservasApi = {
     const params = new URLSearchParams()
     if (desde) params.set('desde', desde)
     if (hasta) params.set('hasta', hasta)
-    return pedir<(ReservaPublica | ReservaPrivada)[]>(`/api/salas/${salaId}/reservas?${params}`, {
-      headers: cabeceraAdmin()
-    })
+    return pedir<(ReservaPublica | ReservaPrivada)[]>(`/api/salas/${salaId}/reservas?${params}`)
   },
 
   async crearReserva(datos: NuevaReserva) {
@@ -132,27 +109,22 @@ export const reservasApi = {
   },
 
   todasLasReservas() {
-    return pedir<ReservaPrivada[]>('/api/reservas', { headers: cabeceraAdmin() })
+    return pedir<ReservaPrivada[]>('/api/reservas')
   },
 
   cancelarReserva(id: number) {
     const token = tokensLocales.leer()[id]
     return pedir<ReservaPrivada>(`/api/reservas/${id}`, {
       method: 'DELETE',
-      headers: { ...(token ? { 'X-Reserva-Token': token } : {}), ...cabeceraAdmin() }
+      headers: token ? { 'X-Reserva-Token': token } : {}
     })
   },
 
   cambiarMantenimiento(salaId: SalaId, activo: boolean, motivo?: string) {
     return pedir<SalaInfo>(`/api/salas/${salaId}/mantenimiento`, {
       method: 'PUT',
-      headers: cabeceraAdmin(),
       body: JSON.stringify({ activo, motivo })
     })
-  },
-
-  verificarAdmin(token: string) {
-    return pedir<{ admin: boolean }>('/api/admin/verificar', { headers: { 'X-Admin-Token': token } })
   }
 }
 

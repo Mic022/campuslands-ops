@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Recurso } from '../../../types/domain'
 import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
@@ -6,6 +6,8 @@ import { Badge } from '../../ui/Badge'
 import { Laptop, User, Calendar, Clock, ShieldAlert } from 'lucide-react'
 
 interface ResourceLoanModalProps {
+  /** Nombre de la persona con sesión (rol usuario): el solicitante no se puede cambiar. */
+  solicitanteFijo?: string
   isOpen: boolean
   onClose: () => void
   recurso: Recurso | null
@@ -19,11 +21,15 @@ interface ResourceLoanModalProps {
 export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
   isOpen,
   onClose,
+  solicitanteFijo,
   recurso,
   onSubmitPrestamo
 }) => {
   const hoyStr = new Date().toISOString().slice(0, 10)
-  const [solicitanteNombre, setSolicitanteNombre] = useState('')
+  const [solicitanteNombre, setSolicitanteNombre] = useState(solicitanteFijo ?? '')
+  useEffect(() => {
+    if (solicitanteFijo) setSolicitanteNombre(solicitanteFijo)
+  }, [solicitanteFijo, isOpen])
   const [fechaDevolucion, setFechaDevolucion] = useState(hoyStr)
   const [horaDevolucion, setHoraDevolucion] = useState('18:00')
   const [loading, setLoading] = useState(false)
@@ -104,6 +110,9 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
               required
               value={solicitanteNombre}
               onChange={e => setSolicitanteNombre(e.target.value)}
+              readOnly={Boolean(solicitanteFijo)}
+              aria-readonly={Boolean(solicitanteFijo)}
+              title={solicitanteFijo ? 'Los préstamos se registran a tu nombre.' : undefined}
               placeholder="Ej. Mateo Salamanca"
               className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />

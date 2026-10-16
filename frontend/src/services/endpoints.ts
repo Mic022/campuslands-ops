@@ -6,6 +6,24 @@
  */
 
 export const ENDPOINTS = {
+  // Autenticación (sesión por cookie HttpOnly + token CSRF)
+  AUTH: {
+    POLITICA: '/auth/politica',
+    LOGIN: '/auth/login',
+    LOGOUT: '/auth/logout',
+    YO: '/auth/yo',
+    REGISTRO: '/auth/registro',
+    RECUPERAR: '/auth/recuperar',
+    RESTABLECER: '/auth/restablecer',
+  },
+
+  // Administración de cuentas (solo rol admin; el backend lo verifica en cada petición)
+  ADMIN: {
+    USUARIOS: '/admin/usuarios',
+    USUARIO: (usuario: string) => `/admin/usuarios/${encodeURIComponent(usuario)}`,
+    DESBLOQUEAR: (usuario: string) => `/admin/usuarios/${encodeURIComponent(usuario)}/desbloquear`,
+  },
+
   // Salud y Configuración de Reglas de Negocio
   HEALTH: '/health',
   CATALOGOS: '/catalogos',

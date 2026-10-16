@@ -22,6 +22,8 @@ interface ResourceInventoryProps {
   onPrestarRecurso: (recurso: Recurso) => void
   onCambiarEstado: (recursoId: string, nuevoEstado: EstadoRecurso) => Promise<void>
   onDevolverPrestamo: (prestamoId: string, estadoEntrega: 'optimo' | 'danado') => Promise<void>
+  /** Cambios de estado y devoluciones son del rol admin (el backend responde 403 al resto). */
+  puedeAdministrar?: boolean
 }
 
 export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
@@ -31,7 +33,8 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
   config,
   onPrestarRecurso,
   onCambiarEstado,
-  onDevolverPrestamo
+  onDevolverPrestamo,
+  puedeAdministrar = true
 }) => {
   const [busqueda, setBusqueda] = useState('')
   const [filtroTipo, setFiltroTipo] = useState<string>('todos')
@@ -107,23 +110,27 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </p>
                 </div>
 
-                <div className="mt-3.5 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => handleDevolucion(p.id, 'danado')}
-                    disabled={submittingId === p.id}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 transition-all cursor-pointer"
-                    title="Devolver con anomalía o daño (RN-03)"
-                  >
-                    Devolver (Con Daño)
-                  </button>
-                  <button
-                    onClick={() => handleDevolucion(p.id, 'optimo')}
-                    disabled={submittingId === p.id}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 transition-all cursor-pointer"
-                  >
-                    Devolver (Óptimo)
-                  </button>
-                </div>
+                {puedeAdministrar ? (
+                  <div className="mt-3.5 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleDevolucion(p.id, 'danado')}
+                      disabled={submittingId === p.id}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 transition-all cursor-pointer"
+                      title="Devolver con anomalía o daño (RN-03)"
+                    >
+                      Devolver (Con Daño)
+                    </button>
+                    <button
+                      onClick={() => handleDevolucion(p.id, 'optimo')}
+                      disabled={submittingId === p.id}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 transition-all cursor-pointer"
+                    >
+                      Devolver (Óptimo)
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-3.5 pt-3 border-t border-white/10 text-[11px] text-slate-500">La devolución la registra un administrador al recibir el equipo.</p>
+                )}
               </div>
             ))}
           </div>
@@ -245,37 +252,41 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                   </Button>
                 )}
 
-                {(rec.estado === 'disponible' || rec.estado === 'danado') && (
-                  <button
-                    onClick={() => handleTransicion(rec.id, 'mantenimiento')}
-                    disabled={submittingId === rec.id}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
-                  >
-                    <Wrench className="w-3.5 h-3.5 text-sky-400" />
-                    <span>A Mantenimiento</span>
-                  </button>
-                )}
+                {puedeAdministrar && (
+                  <>
+                    {(rec.estado === 'disponible' || rec.estado === 'danado') && (
+                      <button
+                        onClick={() => handleTransicion(rec.id, 'mantenimiento')}
+                        disabled={submittingId === rec.id}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
+                      >
+                        <Wrench className="w-3.5 h-3.5 text-sky-400" />
+                        <span>A Mantenimiento</span>
+                      </button>
+                    )}
 
-                {rec.estado === 'mantenimiento' && (
-                  <button
-                    onClick={() => handleTransicion(rec.id, 'disponible')}
-                    disabled={submittingId === rec.id}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#34D399]" />
-                    <span>Dar Alta (Disponible)</span>
-                  </button>
-                )}
+                    {rec.estado === 'mantenimiento' && (
+                      <button
+                        onClick={() => handleTransicion(rec.id, 'disponible')}
+                        disabled={submittingId === rec.id}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#34D399]" />
+                        <span>Dar Alta (Disponible)</span>
+                      </button>
+                    )}
 
-                {rec.estado === 'danado' && (
-                  <button
-                    onClick={() => handleTransicion(rec.id, 'baja')}
-                    disabled={submittingId === rec.id}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Baja Definitiva</span>
-                  </button>
+                    {rec.estado === 'danado' && (
+                      <button
+                        onClick={() => handleTransicion(rec.id, 'baja')}
+                        disabled={submittingId === rec.id}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Baja Definitiva</span>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

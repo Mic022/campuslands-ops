@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Espacio, ReglasConfig } from '../../../types/domain'
 import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
@@ -6,6 +6,8 @@ import { Badge } from '../../ui/Badge'
 import { Calendar, Clock, Users, User, ShieldAlert } from 'lucide-react'
 
 interface SpaceBookingModalProps {
+  /** Nombre de la persona con sesión (rol usuario): el solicitante no se puede cambiar. */
+  solicitanteFijo?: string
   isOpen: boolean
   onClose: () => void
   espacio: Espacio | null
@@ -22,13 +24,17 @@ interface SpaceBookingModalProps {
 export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
   isOpen,
   onClose,
+  solicitanteFijo,
   espacio,
   config,
   onSubmitReserva
 }) => {
   const hoyStr = new Date().toISOString().slice(0, 10)
   const [fecha, setFecha] = useState(hoyStr)
-  const [solicitanteNombre, setSolicitanteNombre] = useState('')
+  const [solicitanteNombre, setSolicitanteNombre] = useState(solicitanteFijo ?? '')
+  useEffect(() => {
+    if (solicitanteFijo) setSolicitanteNombre(solicitanteFijo)
+  }, [solicitanteFijo, isOpen])
   const [horaInicio, setHoraInicio] = useState('14:00')
   const [horaFin, setHoraFin] = useState('16:00')
   const [numPersonas, setNumPersonas] = useState(15)
@@ -131,6 +137,9 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
               required
               value={solicitanteNombre}
               onChange={e => setSolicitanteNombre(e.target.value)}
+              readOnly={Boolean(solicitanteFijo)}
+              aria-readonly={Boolean(solicitanteFijo)}
+              title={solicitanteFijo ? 'Las reservas se registran a tu nombre.' : undefined}
               placeholder="Ej. Ing. Diana Vargas"
               className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />

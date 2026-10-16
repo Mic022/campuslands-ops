@@ -27,12 +27,18 @@ import { IncidentBoard } from './components/features/incidents/IncidentBoard'
 import { IncidentReportModal } from './components/features/incidents/IncidentReportModal'
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
 import { AvisoError, EstadoCarga } from './components/ui/EstadoDatos'
+import { AdminUsuarios } from './components/features/admin/AdminUsuarios'
+import { useAuth } from './auth/AuthContext'
+import { navegar, RutaPrivada } from './auth/rutas'
 import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
 
 type Fuente = 'reglas' | 'espacios' | 'recursos' | 'reservas' | 'prestamos' | 'incidencias'
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('3d-twin')
+export default function App({ ruta }: { ruta: RutaPrivada }) {
+  // Raiz solo monta App con una sesión válida; /admin además exige rol admin.
+  const { usuario, esAdmin } = useAuth()
+  const [pestana, setPestana] = useState<TabType>('3d-twin')
+  const activeTab: TabType = ruta === '/admin' ? 'admin' : pestana
 
   // Datos principales: todos vienen del backend (no hay datos de demostración).
   const [espacios, setEspacios] = useState<Espacio[]>([])
@@ -228,7 +234,12 @@ export default function App() {
 
   const visorRef = useRef<HTMLDivElement>(null)
   const irAPestana = (tab: TabType) => {
-    setActiveTab(tab)
+    // La administración tiene su propia URL (/admin) para poder protegerla como ruta.
+    if (tab === 'admin') navegar('/admin')
+    else {
+      setPestana(tab)
+      if (ruta === '/admin') navegar('/')
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -248,6 +259,7 @@ export default function App() {
           setIsReportOpen(true)
         }}
         incidenciasCriticasCount={incidenciasCriticasCount}
+        esAdmin={esAdmin}
       />
 
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -287,7 +299,9 @@ export default function App() {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-8"
             >
-              {!config && <EstadoCarga cargando={cargando} error={errores.reglas} onReintentar={cargarTodo} />}
+              {!config && activeTab !== 'admin' && <EstadoCarga cargando={cargando} error={errores.reglas} onReintentar={cargarTodo} />}
+
+              {activeTab === 'admin' && esAdmin && <AdminUsuarios onToast={addToast} />}
 
               {config && activeTab === 'spaces' && (
                 <>
@@ -354,6 +368,7 @@ export default function App() {
                     }}
                     onCambiarEstado={handleCambiarEstadoRecurso}
                     onDevolverPrestamo={handleDevolverPrestamo}
+                    puedeAdministrar={esAdmin}
                   />
                 </>
               )}
@@ -424,6 +439,7 @@ export default function App() {
           <SpaceBookingModal
             isOpen={isBookingOpen}
             onClose={() => setIsBookingOpen(false)}
+            solicitanteFijo={esAdmin ? undefined : usuario?.nombre}
             espacio={espacioParaReserva}
             config={config}
             onSubmitReserva={handleCrearReserva}
@@ -432,6 +448,7 @@ export default function App() {
           <ResourceLoanModal
             isOpen={isLoanOpen}
             onClose={() => setIsLoanOpen(false)}
+            solicitanteFijo={esAdmin ? undefined : usuario?.nombre}
             recurso={recursoParaPrestamo}
             onSubmitPrestamo={handleCrearPrestamo}
           />

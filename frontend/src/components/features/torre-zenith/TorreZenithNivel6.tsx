@@ -1,7 +1,8 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { SALAS_GEOMETRIA } from '../../../data/torreZenithNivel6'
-import { reservasApi, tokenAdmin } from '../../../services/reservasApi'
+import { reservasApi } from '../../../services/reservasApi'
+import { useAuth } from '../../../auth/AuthContext'
 import { EstadoVisual, Nivel6Estado, ReglasReserva, SalaEstado, SalaId } from '../../../types/torreZenith'
 import { FloorPlan3D } from '../../../scenes/torre-zenith/FloorPlan3D'
 import { ComandoCamara, PeticionCamara } from '../../../scenes/torre-zenith/CameraRig'
@@ -42,7 +43,8 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
   const [cajon, setCajon] = useState<'lista' | 'reservas' | null>(null)
   const [detalles, setDetalles] = useState<SalaId | null>(null)
   const [formulario, setFormulario] = useState<{ abierto: boolean; sala: SalaId | null }>({ abierto: false, sala: null })
-  const [admin, setAdmin] = useState(false)
+  // Modo operador = rol admin de la sesión (antes era un token guardado en el navegador).
+  const { esAdmin: admin } = useAuth()
   const [version, setVersion] = useState(0)
   const webgl = useMemo(soportaWebGL, [])
   // El 3D solo se dibuja mientras el visor está en pantalla.
@@ -85,8 +87,6 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
 
   useEffect(() => {
     reservasApi.getReglas().then(setReglas).catch(() => undefined)
-    const t = tokenAdmin.leer()
-    if (t) reservasApi.verificarAdmin(t).then(() => setAdmin(true)).catch(() => tokenAdmin.guardar(null))
   }, [])
 
   const refrescar = () => {
@@ -240,7 +240,6 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
             admin={admin}
             version={version}
             nombres={nombres}
-            onAdmin={setAdmin}
             onCambio={refrescar}
             onCerrar={() => setCajon(null)}
             onToast={onToast}

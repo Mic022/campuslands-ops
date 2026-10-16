@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CalendarPlus, KeyRound, LogOut, X } from 'lucide-react'
+import { CalendarPlus, ShieldCheck, X } from 'lucide-react'
 import { SALAS_GEOMETRIA } from '../../../data/torreZenithNivel6'
-import { ReservaApiError, reservasApi, tokenAdmin } from '../../../services/reservasApi'
+import { reservasApi } from '../../../services/reservasApi'
 import { EstadoVisual, ReservaPrivada, SalaEstado, SalaId } from '../../../types/torreZenith'
 import { EstadoChip, Muestra, Toast, boton, fechaCorta, panel } from './comun'
 import { ReservationRow } from './ReservationRow'
@@ -85,19 +85,16 @@ interface MyReservationsDrawerProps {
   admin: boolean
   version: number
   nombres: Record<SalaId, string>
-  onAdmin: (activo: boolean) => void
   onCambio: () => void
   onCerrar: () => void
   onToast: Toast
 }
 
-export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admin, version, nombres, onAdmin, onCambio, onCerrar, onToast }) => {
+export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admin, version, nombres, onCambio, onCerrar, onToast }) => {
   const [pestana, setPestana] = useState<'mias' | 'todas'>('mias')
   const [lista, setLista] = useState<ReservaPrivada[]>([])
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
   const [mensajeError, setMensajeError] = useState('')
-  const [token, setToken] = useState('')
-  const [verificando, setVerificando] = useState(false)
 
   const cargar = async () => {
     setEstado('cargando')
@@ -114,23 +111,6 @@ export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admi
     cargar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pestana, admin, version])
-
-  const entrarAdmin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setVerificando(true)
-    try {
-      await reservasApi.verificarAdmin(token.trim())
-      tokenAdmin.guardar(token.trim())
-      setToken('')
-      onAdmin(true)
-      onToast('info', 'Modo operador activo: mantenimiento e historial completo habilitados.', 'ADMIN')
-    } catch (err) {
-      const er = err as ReservaApiError
-      onToast('error', er.message, er.codigo)
-    } finally {
-      setVerificando(false)
-    }
-  }
 
   const color = (id: SalaId) => SALAS_GEOMETRIA.find(g => g.id === id)?.color
 
@@ -185,34 +165,12 @@ export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admi
           </p>
         ))}
 
-      <div className="mt-5 border-t border-slate-800 pt-3">
-        {admin ? (
-          <button
-            onClick={() => {
-              tokenAdmin.guardar(null)
-              setPestana('mias')
-              onAdmin(false)
-            }}
-            className={boton}
-          >
-            <LogOut className="h-3.5 w-3.5" /> Salir del modo operador
-          </button>
-        ) : (
-          <form onSubmit={entrarAdmin} className="flex gap-2">
-            <input
-              type="password"
-              value={token}
-              onChange={e => setToken(e.target.value)}
-              placeholder="Token de operador"
-              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-white"
-              autoComplete="off"
-            />
-            <button type="submit" disabled={!token.trim() || verificando} className={boton}>
-              <KeyRound className="h-3.5 w-3.5" /> Operador
-            </button>
-          </form>
-        )}
-      </div>
+      <p className="mt-5 flex items-start gap-2 border-t border-slate-800 pt-3 text-[11px] leading-snug text-slate-400">
+        <ShieldCheck className={`mt-px h-3.5 w-3.5 shrink-0 ${admin ? 'text-amber-300' : 'text-slate-500'}`} />
+        {admin
+          ? 'Modo operador activo por tu rol de administrador: mantenimiento e historial completo habilitados.'
+          : 'El modo operador (mantenimiento e historial completo) está disponible para el rol administrador.'}
+      </p>
     </Cajon>
   )
 }
