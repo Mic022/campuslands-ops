@@ -22,3 +22,11 @@ class ReglaNegocioError(Exception):
 
 class NoEncontradoError(Exception):
     """Entidad inexistente; la API responde 404."""
+
+
+class NoAutenticadoError(Exception):
+    """Falta el token o no es válido; la API responde 401."""
+
+
+class PermisoError(Exception):
+    """El usuario no tiene permiso para esta acción; la API responde 403."""

@@ -49,6 +49,23 @@ data/raw (solo lectura) ─▶ ingest ─▶ SQLite + data/reports (cuarentena)
 Todo error llega al cliente como `{codigo, mensaje}`: regla de negocio → 409, no encontrado → 404,
 datos inválidos → 422 (con `detalles`), IA no disponible → 503, inesperado → 500 sin detalles internos.
 
+## Roles y autenticación
+Dos roles: **admin** y **usuario**. Una sola tabla, [`backend/app/config/permisos.py`](backend/app/config/permisos.py),
+define qué puede hacer cada uno; una dependencia global la aplica a todas las rutas.
+
+| Acción | Usuario | Admin |
+|---|---|---|
+| Ver espacios, recursos, reservas y agenda | ✅ | ✅ |
+| Reservar y pedir préstamos **a su nombre**; cancelar **sus** reservas | ✅ | ✅ (por cualquiera) |
+| Reportar incidencias (triaje y confirmación) | ✅ | ✅ |
+| Crear/editar espacios y recursos, cambiar estado de recursos, registrar devoluciones, cambiar estado de incidencias | ❌ | ✅ |
+| Reporte de carga y auditoría | ❌ | ✅ |
+
+- `POST /api/auth/login` `{usuario, clave}` → token; luego `Authorization: Bearer <token>`. Sin sesión → 401 `AUTH-401`; sin permiso → 403 `AUTH-403`.
+- Contraseñas con PBKDF2-SHA256 y sal; tokens firmados con HMAC-SHA256 (`SECRET_KEY`) que vencen en `TOKEN_HORAS`. Solo librería estándar.
+- Usuarios de prueba ficticios definidos en `.env` (`ADMIN_USUARIO`, `USUARIOS_DEMO`). Si una clave está vacía, `reset_db` genera una y la muestra; **no hay claves en el repositorio**.
+- La auditoría registra el nombre del usuario que hizo cada cambio.
+
 ## Uso de IA
 **Qué hace:** triaje de incidencias. A partir del texto libre del reporte propone **categoría**,
 **prioridad** y **área responsable**, con una justificación y un nivel de confianza.
@@ -122,7 +139,7 @@ la BD y levanta backend y frontend.
 
 ```bash
 # 1. Variables de entorno
-cp .env.example .env          # completar la sección de IA
+cp .env.example .env          # completar SECRET_KEY, claves de usuarios y la sección de IA
 
 # 2. Datos oficiales
 #    copiar los archivos entregados a data/raw/ (ver tabla de Manejo de datos)
@@ -151,4 +168,4 @@ pytest
 - **IDs de espacio** derivados del nombre (`Sala Verde 1` → `sala-verde-1`); el frontend y el plano 3D usan los mismos IDs.
 - **Concurrencia:** validar y escribir ocurre dentro de un candado y una transacción, para que dos reservas simultáneas no pasen la validación a la vez. Con PostgreSQL se usaría una restricción de exclusión.
 - **Sin borrado físico:** las reservas se cancelan, los préstamos se devuelven y los recursos se dan de baja, para conservar la trazabilidad.
-- **Sin autenticación:** el solicitante se identifica por nombre. Con más tiempo: usuarios, roles y permisos.
+- **Autenticación simple:** usuarios de prueba y dos roles, sin registro ni recuperación de clave. Con más tiempo: gestión de usuarios y permisos más finos.

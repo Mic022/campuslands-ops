@@ -51,6 +51,15 @@ tr:last-child td { border-bottom: none; }
 .chip.mantenimiento { background: #fdf0dc; color: var(--alerta); }
 .chip.inhabilitado { background: #fde7e5; color: var(--error); }
 
+.sesion { display: flex; gap: 8px; align-items: center; color: var(--suave); font-size: 0.9rem; }
+.login { max-width: 360px; margin-top: 24px; display: flex; flex-direction: column; gap: 12px;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: 8px; padding: 20px; }
+.login h2 { margin: 0; }
+.login label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--suave); }
+.login input { font: inherit; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); }
+.login button { font: inherit; padding: 9px; border: none; border-radius: 6px; background: var(--acento); color: #fff; }
+.login button:disabled { opacity: 0.6; cursor: wait; }
+
 @media (max-width: 640px) {
   nav a { margin-left: 0; }
   th, td { padding: 6px 8px; }
