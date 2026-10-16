@@ -16,7 +16,7 @@ lo que no se puede, y la IA clasifica y prioriza las incidencias. **La IA recomi
 | Integrante (GitHub) | Rol |
 |---|---|
 | _nombre_ (@Mic022) | P1 · Líder técnico, datos e integración |
-| _nombre_ (@Jonatan-17) | P2 · Backend de espacios y recursos |
+| Jonatan Sarmiento (@Jonatan-17) | P2 · Backend de espacios y recursos |
 | _nombre_ (@Nic-tolb) | P3 · IA e incidencias |
 | _nombre_ (@velascodazasergio-png) | P4 · Frontend, 3D y demo |
 
@@ -83,6 +83,12 @@ instrucciones; la salida solo puede tomar valores del catálogo; el texto se mue
 
 Todos los parámetros están en [`backend/app/config/reglas.py`](backend/app/config/reglas.py) y se leen
 en cada llamada: un cambio ahí se aplica sin tocar el resto del código.
+
+**Ver cada error en vivo:** con la API corriendo, `cd backend && python -m scripts.demo_errores`
+dispara una petición por cada error de espacios y recursos (RN-01 a RN-07, 404, 409 y 422) y muestra
+su código, el mensaje de la API y por qué ocurre. Los límites se leen de `GET /api/reglas`: tras
+cambiar `reglas.py` basta con volver a correrlo. `--solo RN-06` filtra por código. Deja la BD como
+estaba (cancela sus reservas y devuelve sus préstamos); solo quedan los recursos de prueba `DEMO-ERR-*`.
 
 ## Manejo de datos
 Los archivos oficiales van en `data/raw/` y **nunca se modifican**. `python -m scripts.reset_db`
