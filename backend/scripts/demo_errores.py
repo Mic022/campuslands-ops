@@ -13,9 +13,11 @@ Por cada petición muestra el código que devolvió la API, su mensaje y el porq
 regla. Los límites se leen de GET /api/reglas, así que tras cambiar config/reglas.py
 (uvicorn --reload recarga solo) basta con volver a correrlo para ver la regla nueva.
 
-Lo que crea lo deja como estaba: cancela sus reservas, devuelve sus préstamos y
-restaura los estados. Los recursos de prueba (DEMO-ERR-*) quedan en el inventario,
-disponibles, para reutilizarlos en la siguiente corrida.
+Solo usa espacios y recursos reales del inventario y los deja como estaban: cancela
+sus reservas, devuelve sus préstamos y restaura los estados (todo queda en la auditoría
+a nombre de "Demo Errores"). No crea espacios ni recursos inventados. Si el inventario no
+tiene recursos disponibles suficientes, omite esos casos; con --crear-recursos-prueba crea
+los que falten como DEMO-ERR-* (quedan en el inventario: no usar frente al jurado).
 """
 import argparse
 import json
@@ -30,7 +32,6 @@ from urllib.parse import urlencode
 SOLICITANTE = "Demo Errores"
 SOLICITANTE_2 = "Demo Errores Dos"
 PREFIJO_RECURSO = "DEMO-ERR-"
-ESPACIO_DEMO = "Sala Demo Errores"
 
 # Pedir(metodo, ruta, cuerpo) -> (status, json).
 Pedir = Callable[[str, str, dict | None], tuple[int, object]]
@@ -110,6 +111,7 @@ class Demo:
     anonimo: Pedir | None = None    # sin token, para AUTH-401
     usuario: Sesion | None = None    # usuario sin rol admin, para AUTH-403
     solo: str | None = None
+    crear_recursos_prueba: bool = False
     salida: Callable[[str], None] = print
     casos: list[Caso] = field(default_factory=list)
     _deshacer: list[tuple[str, Callable[[], None]]] = field(default_factory=list)
@@ -210,7 +212,7 @@ class Demo:
             return
         nombre = self.usuario.nombre
         self.probar(
-            "AUTH-403", "Un usuario cambia el estado de un recurso", "PATCH", f"/api/recursos/{PREFIJO_RECURSO}01/estado",
+            "AUTH-403", "Un usuario cambia el estado de un recurso", "PATCH", "/api/recursos/cualquiera/estado",
             {"estado": "mantenimiento"},
             f"'{nombre}' tiene rol usuario. Cambiar estados, editar el inventario y registrar devoluciones es solo "
             "para administradores (SOLO_ADMIN en config/permisos.py); se rechaza antes de tocar el recurso.",
@@ -234,7 +236,7 @@ class Demo:
         """Una reserva real de 2 personas en un espacio y día libres; contra ella chocan los casos."""
         espacios = [e for e in self.exigir("GET", "/api/espacios") if e["estado"] == "disponible" and e["aforo_permitido"] >= 2]
         if not espacios:
-            espacios = [self._espacio_demo()]
+            raise FalloPreparacion("No hay espacios disponibles con aforo para 2 personas. Carga los datos con reset_db.")
         base = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=90)
         for espacio in espacios:
             for d in range(30):
@@ -251,12 +253,6 @@ class Demo:
                 if resp.get("codigo") != "RN-01":   # bloqueado o sin aforo: probar otro espacio
                     break
         raise FalloPreparacion("No se encontró un espacio y horario libres para la reserva base.")
-
-    def _espacio_demo(self) -> dict:
-        status, resp = self.pedir("POST", "/api/espacios", {"nombre": ESPACIO_DEMO, "tipo": "aula", "aforo": 20})
-        if status != 201:
-            resp = self.exigir("GET", "/api/espacios/sala-demo-errores")
-        return {**resp, "aforo_permitido": int(resp["aforo"] * self.reglas["factor_aforo"])}
 
     def errores_reservas(self) -> None:
         r = self.reglas
@@ -355,12 +351,27 @@ class Demo:
 
     # ---------- Recursos: RN-03, RN-04, RN-06, RN-07 ----------
 
-    def _recursos_demo(self, cuantos: int) -> list[str]:
-        """Recursos DEMO-ERR-* en 'disponible'. Crea los que falten y repara los que quedaron en otro estado."""
+    def _recursos_disponibles(self, cuantos: int) -> list[str]:
+        """Recursos reales en 'disponible' sin incidencias bloqueantes abiertas (no se inventa nada)."""
+        bloqueados = {
+            i["recurso_id"]
+            for estado in ("abierta", "en_proceso")
+            for i in self.exigir("GET", f"/api/incidencias?estado={estado}")
+            if i.get("recurso_id") and i.get("prioridad") in self.reglas["prioridades_bloqueantes"]
+        }
+        disponibles = [r["id"] for r in self.exigir("GET", "/api/recursos?estado=disponible") if r["id"] not in bloqueados]
+        if len(disponibles) >= cuantos or not self.crear_recursos_prueba:
+            return disponibles[:cuantos]
+        return disponibles + self._recursos_prueba(cuantos - len(disponibles), excluir=set(disponibles))
+
+    def _recursos_prueba(self, cuantos: int, excluir: set) -> list[str]:
+        """Solo con --crear-recursos-prueba: crea DEMO-ERR-* (o repara los de corridas anteriores)."""
         listos, i = [], 1
         while len(listos) < cuantos:
             rid = f"{PREFIJO_RECURSO}{i:02d}"
             i += 1
+            if rid in excluir:
+                continue
             status, rec = self.pedir("GET", f"/api/recursos/{rid}", None)
             if status == 404:
                 rec = self.exigir("POST", "/api/recursos", {"id": rid, "tipo": "portatil", "nombre": f"Portátil demo {rid[-2:]}"})
@@ -382,7 +393,14 @@ class Demo:
     def errores_prestamos(self) -> None:
         r = self.reglas
         maximo = r["max_prestamos_activos"]
-        recursos = self._recursos_demo(max(maximo + 1, 2))
+        necesarios = max(maximo + 1, 2)
+        recursos = self._recursos_disponibles(necesarios)
+        if len(recursos) < necesarios:
+            self.salida(
+                f"(El inventario tiene {len(recursos)} recurso(s) disponible(s) y estos casos necesitan {necesarios}: "
+                "se omiten. Carga recursos.csv o créalos desde la app; para ensayar sin datos usa --crear-recursos-prueba.)"
+            )
+            return
         r1 = recursos[0]
         manana = (datetime.now() + timedelta(days=1)).isoformat(timespec="minutes")
         hace_una_hora = (datetime.now() - timedelta(hours=1)).isoformat(timespec="minutes")
@@ -464,6 +482,8 @@ def main() -> None:
     parser.add_argument("--solo", help="mostrar solo los casos cuyo código empiece así (RN-01, RN-0, AUTH, ERR)")
     parser.add_argument("--usuario", help="admin con el que iniciar sesión (por defecto ADMIN_USUARIO de .env)")
     parser.add_argument("--clave", help="clave del admin (por defecto ADMIN_CLAVE de .env)")
+    parser.add_argument("--crear-recursos-prueba", action="store_true",
+                        help="si faltan recursos disponibles, crear DEMO-ERR-* (quedan en el inventario; solo para ensayar)")
     args = parser.parse_args()
 
     from app.config import settings  # carga .env
@@ -477,7 +497,8 @@ def main() -> None:
             sys.exit(2)
         con_usuario = bool(settings.USUARIOS_DEMO and settings.USUARIO_CLAVE) and usuario.iniciar(
             settings.USUARIOS_DEMO[0], settings.USUARIO_CLAVE)
-        demo = Demo(admin, anonimo=Sesion(transporte), usuario=usuario if con_usuario else None, solo=args.solo)
+        demo = Demo(admin, anonimo=Sesion(transporte), usuario=usuario if con_usuario else None, solo=args.solo,
+                    crear_recursos_prueba=args.crear_recursos_prueba)
         todo_bien = demo.ejecutar()
     except urllib.error.URLError as e:
         print(f"✗ No se pudo conectar con {args.url} ({e.reason}). Arranca la API: uvicorn app.main:app --reload")

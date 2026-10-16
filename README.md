@@ -134,7 +134,9 @@ dispara una petición por cada error de sesión, espacios y recursos (AUTH-401/4
 de `.env` (o `--usuario`/`--clave`); con `USUARIO_CLAVE` también muestra los 403 de un usuario sin rol
 admin. Los límites se leen de `GET /api/reglas`: tras
 cambiar `reglas.py` basta con volver a correrlo. `--solo RN-06` filtra por código. Deja la BD como
-estaba (cancela sus reservas y devuelve sus préstamos); solo quedan los recursos de prueba `DEMO-ERR-*`.
+estaba (cancela sus reservas, devuelve sus préstamos y restaura estados). Usa solo espacios y recursos
+reales: no crea datos inventados. Si faltan recursos disponibles omite esos casos; `--crear-recursos-prueba`
+crea `DEMO-ERR-*` para ensayar (quedan en el inventario, no usar frente al jurado).
 
 ## Manejo de datos
 Los archivos oficiales van en `data/raw/` y **nunca se modifican**. `python -m scripts.reset_db`

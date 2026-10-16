@@ -13,20 +13,28 @@ from app.config import reglas as cfg
 from app.db import get_session
 from app.main import app
 from app.models import Espacio, Prestamo, Recurso, Reserva, Usuario
-from scripts.demo_errores import Demo, Sesion
+from scripts.demo_errores import Demo, FalloPreparacion, Sesion
 
 pytestmark = pytest.mark.autenticacion_real
 
 
-@pytest.fixture
-def engine():
+def crear_engine(recursos: int):
+    """BD de prueba con un espacio y `recursos` portátiles, como si vinieran del dataset."""
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as s:
         s.add(Usuario(usuario="admin", nombre="Administración", rol="admin", clave_hash=hashear_clave("clave-admin")))
         s.add(Usuario(usuario="ana", nombre="Ana", rol="usuario", clave_hash=hashear_clave("clave-ana")))
+        s.add(Espacio(id="cosmos", nombre="Cosmos", tipo="aula", aforo=25))
+        for i in range(1, recursos + 1):
+            s.add(Recurso(id=f"PC-{i:02d}", tipo="portatil", nombre=f"Portátil {i}"))
         s.commit()
     return engine
+
+
+@pytest.fixture
+def engine(request):
+    return crear_engine(getattr(request, "param", 5))
 
 
 @pytest.fixture
@@ -67,6 +75,8 @@ def test_cada_caso_devuelve_su_codigo(transporte):
 def test_deja_todo_como_estaba(transporte, engine):
     correr(transporte)
     with Session(engine) as s:
+        assert [e.id for e in s.exec(select(Espacio))] == ["cosmos"]          # no inventa espacios
+        assert sorted(r.id for r in s.exec(select(Recurso))) == [f"PC-{i:02d}" for i in range(1, 6)]  # ni recursos
         assert all(e.estado == "disponible" for e in s.exec(select(Espacio)))
         assert all(r.estado == "disponible" for r in s.exec(select(Recurso)))
         assert not s.exec(select(Prestamo).where(Prestamo.estado == "activo")).all()
@@ -89,6 +99,35 @@ def test_sigue_los_cambios_en_vivo(transporte, monkeypatch):
     demo = correr(transporte)
     limite = next(c for c in demo.casos if c.titulo == "Superar el límite de préstamos activos")
     assert "el máximo es 3" in limite.respuesta["mensaje"]
+
+
+@pytest.mark.parametrize("engine", [1], indirect=True)
+def test_sin_recursos_suficientes_omite_esos_casos_y_no_crea_nada(transporte, engine):
+    demo = correr(transporte)
+    codigos = {c.esperado for c in demo.casos}
+    assert "RN-01" in codigos and not {"RN-03", "RN-06", "RN-07"} & codigos
+    with Session(engine) as s:
+        assert [r.id for r in s.exec(select(Recurso))] == ["PC-01"]
+
+
+@pytest.mark.parametrize("engine", [0], indirect=True)
+def test_con_flag_crea_recursos_de_prueba(transporte, engine):
+    demo = correr(transporte, crear_recursos_prueba=True)
+    assert {"RN-03", "RN-06", "RN-07"} <= {c.esperado for c in demo.casos}
+    with Session(engine) as s:
+        assert all(r.id.startswith("DEMO-ERR-") for r in s.exec(select(Recurso)))
+
+
+def test_sin_espacios_no_inventa_uno(transporte, engine):
+    with Session(engine) as s:
+        s.get(Espacio, "cosmos").estado = "mantenimiento"
+        s.commit()
+    admin = Sesion(transporte)
+    assert admin.iniciar("admin", "clave-admin")
+    with pytest.raises(FalloPreparacion):
+        Demo(admin, salida=lambda _: None).ejecutar()
+    with Session(engine) as s:
+        assert [e.id for e in s.exec(select(Espacio))] == ["cosmos"]
 
 
 def test_filtro_por_codigo(transporte):
