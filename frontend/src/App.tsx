@@ -28,6 +28,7 @@ import { ResourceLoanModal } from './components/features/resources/ResourceLoanM
 import { IncidentBoard } from './components/features/incidents/IncidentBoard'
 import { IncidentReportModal } from './components/features/incidents/IncidentReportModal'
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
+import { DataLoadReport } from './components/features/datos/DataLoadReport'
 import { AvisoError, EstadoCarga } from './components/ui/EstadoDatos'
 import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
 
@@ -437,6 +438,8 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
                     ]}
                   />
                   <JuryRulesInspector config={config} />
+                  {/* Evidencia de la carga de datos oficiales (el endpoint es solo para administradores). */}
+                  {sesion.usuario.rol === 'admin' && <DataLoadReport />}
                 </>
               )}
             </motion.div>
