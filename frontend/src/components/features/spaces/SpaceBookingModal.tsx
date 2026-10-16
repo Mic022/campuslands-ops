@@ -54,10 +54,8 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
 
   if (!espacio) return null
 
-  // Cálculo de aforo máximo según factor perilla
   const aforoMaximoPermitido = Math.floor(espacio.capacidad * config.factor_aforo)
 
-  // Validación preventiva en tiempo real con motor de reglas
   const validacionActual = validarReservaEspacio(
     espacio,
     { horaInicio, horaFin, numPersonas, solicitanteEmail },
@@ -92,7 +90,6 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
         motivo: motivo.trim()
       })
       onClose()
-      // Limpiar formulario
       setSolicitanteNombre('')
       setSolicitanteEmail('')
       setMotivo('')
@@ -113,9 +110,9 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Banner de Estado del Espacio */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-black/40 border border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Estado operativo:</span>
+            <span className="text-xs text-slate-400 font-mono">Estado operativo:</span>
             <Badge
               label={espacio.estado}
               variant={
@@ -128,25 +125,25 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
               size="sm"
             />
           </div>
-          <div className="text-xs font-mono text-cyan-400">
-            Aforo autorizado (Factor {(config.factor_aforo * 100).toFixed(0)}%): <strong>{aforoMaximoPermitido} pax</strong>
+          <div className="text-xs font-mono text-cyan-400 font-bold">
+            Aforo autorizado ({(config.factor_aforo * 100).toFixed(0)}%): {aforoMaximoPermitido} pax
           </div>
         </div>
 
-        {/* Alerta de bloqueo si el espacio está inhabilitado por RN-04 */}
+        {/* Alerta de bloqueo RN-04 */}
         {!validacionActual.valido && validacionActual.codigo.startsWith('RN-04') && (
-          <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/60 flex items-start gap-2.5 text-xs text-rose-200">
+          <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/60 flex items-start gap-2.5 text-xs text-rose-200 shadow-lg shadow-rose-950/50">
             <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="block font-bold text-rose-300">
-                REGLA RN-04 ACTIVADA: Espacio Inhabilitado
+              <strong className="block font-bold text-rose-300 uppercase">
+                REGLA RN-04: Espacio Inhabilitado por Incidencia
               </strong>
               <p className="mt-0.5 leading-relaxed">{validacionActual.mensaje}</p>
             </div>
           </div>
         )}
 
-        {/* Datos del Solicitante */}
+        {/* Solicitante */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">
@@ -160,7 +157,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
                 value={solicitanteNombre}
                 onChange={e => setSolicitanteNombre(e.target.value)}
                 placeholder="Ej. Ing. Diana Vargas"
-                className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
               />
             </div>
           </div>
@@ -177,7 +174,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
                 value={solicitanteEmail}
                 onChange={e => setSolicitanteEmail(e.target.value)}
                 placeholder="diana.vargas@campuslands.edu"
-                className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
               />
             </div>
           </div>
@@ -196,7 +193,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
                 required
                 value={horaInicio}
                 onChange={e => setHoraInicio(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-400"
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
           </div>
@@ -212,7 +209,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
                 required
                 value={horaFin}
                 onChange={e => setHoraFin(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-400"
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
           </div>
@@ -229,13 +226,13 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
                 max={espacio.capacidad * 2}
                 value={numPersonas}
                 onChange={e => setNumPersonas(Number(e.target.value))}
-                className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-400"
+                className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
           </div>
         </div>
 
-        {/* Motivo de la Reserva */}
+        {/* Motivo */}
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1">
             Motivo / Asignatura / Evento
@@ -248,39 +245,37 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
               value={motivo}
               onChange={e => setMotivo(e.target.value)}
               placeholder="Ej. Taller intensivo de WebGL y Three.js para campers"
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
           </div>
         </div>
 
         {/* Validación Preventiva en Vivo (RN-01) */}
-        <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+        <div className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 ${
           validacionActual.valido 
-            ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' 
-            : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+            ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300' 
+            : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
         }`}>
           {validacionActual.valido ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-[#FFB703] shrink-0 mt-0.5" />
           )}
           <div>
-            <span className="font-mono text-[10px] font-bold block uppercase">
+            <span className="font-mono text-[10px] font-bold block uppercase tracking-wide">
               {validacionActual.codigo}
             </span>
             <p className="mt-0.5">{validacionActual.mensaje}</p>
           </div>
         </div>
 
-        {/* Error local si lo hay */}
         {errorLocal && (
-          <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-300">
+          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/50 text-xs text-rose-300">
             {errorLocal}
           </div>
         )}
 
-        {/* Footer y Acciones */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
           <Button
             type="button"
             variant="ghost"
