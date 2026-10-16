@@ -14,7 +14,7 @@ IA_PROVEEDOR = os.getenv("IA_PROVEEDOR", "").strip().lower()
 IA_MODELO = os.getenv("IA_MODELO", "")
 IA_API_KEY = os.getenv("IA_API_KEY", "")
 IA_BASE_URL = os.getenv("IA_BASE_URL", "")
-IA_TIMEOUT_S = int(os.getenv("IA_TIMEOUT_S", "15"))
+IA_TIMEOUT_S = int(os.getenv("IA_TIMEOUT_S", "30"))
 
 DATA_RAW = RAIZ_REPO / "data" / "raw"
 DATA_REPORTS = RAIZ_REPO / "data" / "reports"

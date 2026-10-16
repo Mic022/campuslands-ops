@@ -12,7 +12,14 @@ Ninguna rama tiene credenciales ni texto del pie de página del PDF. 👍
 Buena base: prompt con delimitadores y catálogos dinámicos, esquema Pydantic, reintento con corrección.
 
 ### Bloqueantes antes de integrar
-1. **`app/ai/triaje.py` → `_llamar_proveedor_ia` devuelve un JSON fijo.** Reemplazar por la llamada real al proveedor autorizado a través de `app/ai/proveedor.py` (`obtener_proveedor().completar(...)`), con `temperatura=0` y `timeout_s=settings.IA_TIMEOUT_S`. Si no hay proveedor, debe lanzar `ErrorProveedor` → la API responde 503 y la UI ofrece triaje manual.
+1. **`app/ai/triaje.py` → `_llamar_proveedor_ia` devuelve un JSON fijo.** El adaptador real ya está en `develop` (`app/ai/proveedor.py`, soporta anthropic / openai / ollama según `.env`). Reemplazar la función por:
+   ```python
+   from app.ai.proveedor import ErrorProveedor, esquema_estricto, medir, obtener_proveedor
+
+   proveedor = obtener_proveedor()                     # lanza ErrorProveedor si no hay IA configurada
+   crudo, latencia_ms = medir(proveedor.completar, mensajes, esquema=esquema_estricto(ClasificacionIA))
+   ```
+   `ErrorProveedor` no se reintenta: se registra en `LlamadaIA` y se deja subir → la API responde 503 y la UI ofrece triaje manual. Verificar la configuración con `python -m scripts.probar_ia`.
 2. **`app/rules/integracion.py` usa `espacio.estado.value` y `recurso.estado.value`.** En la BD los estados son texto (`str`), así que eso lanza `AttributeError` → error 500 justo cuando la regla debería rechazar. Usar `espacio.estado` directamente. Lo mismo con `recurso.serial` (puede ser `None`): usar `recurso.nombre or recurso.id`.
 
 ### Pendientes
