@@ -47,10 +47,10 @@ Nombre, aforo, tipo y estado **siempre** vienen de la API.
 | `crearPrestamo()` | `POST /api/prestamos` | ✅ listo (RN-03, 06; RN-04 en PR #2) |
 | `actualizarEstadoRecurso()` | `PATCH /api/recursos/{id}/estado` `{estado, motivo?}` | ✅ listo (RN-03) |
 | `devolverPrestamo(id, 'optimo'|'danado')` | `POST /api/prestamos/{id}/devolucion` `{estado_recurso: 'disponible'|'danado'}` | ✅ listo (RN-07) |
-| `triajeConIA(texto)` | `POST /api/incidencias/triaje` | ✅ listo (rama DevNic) |
-| `getIncidencias()` | `GET /api/incidencias` | ✅ listo (rama DevNic) |
-| `crearIncidencia()` | `POST /api/incidencias` (enviar `propuesta_ia`) | ✅ listo (rama DevNic) |
-| `resolverIncidencia(id)` | `PATCH /api/incidencias/{id}` `{estado: 'resuelta'}` | ✅ listo (rama DevNic) |
+| `triajeConIA(texto)` | `POST /api/incidencias/triaje` | ✅ listo |
+| `getIncidencias()` | `GET /api/incidencias` | ✅ listo |
+| `crearIncidencia()` | `POST /api/incidencias` (enviar `propuesta_ia`) | ✅ listo |
+| `resolverIncidencia(id)` | `PATCH /api/incidencias/{id}` `{estado: 'resuelta'}` | ✅ listo |
 
 **Errores:** todo error del backend llega como `{codigo, mensaje}` (409 regla, 404, 422 con
 `detalles`, 503 IA caída, 500). `apiClient` lo convierte en `ApiError(codigo, mensaje)` y los
@@ -166,8 +166,8 @@ IDs de espacio y recurso son **texto**.
 
 | Hueco | Dueño | Bloquea |
 |---|---|---|
-| Endpoints de incidencias (§5) y corrección de `triaje.py` (falta `import settings`; usar el adaptador de `develop`) | Nic | Triaje, RN-04 visible, demo |
-| Integrar PR #2 (RN-04 en reservas y préstamos) | Mic (aprobar) | Bloqueos |
+| ~~Endpoints de incidencias (§5)~~ ✅ integrado (PR #3) | Nic | — |
+| ~~Integrar PR #2 (RN-04 en reservas y préstamos)~~ ✅ integrado | Mic | — |
 | Reescribir `apiClient.ts`, `layout3D.ts`, ajustes de §4 | Sergio (o Mic si se acuerda) | Toda la UI |
 | Inventario de recursos (oficial o creado desde la app) | Equipo / organizadores | Módulo 2 en la demo |
 | Proveedor de IA autorizado + clave en `.env` | Organizadores | IA en vivo |
