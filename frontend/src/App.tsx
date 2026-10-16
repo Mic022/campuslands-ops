@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { 
   Espacio, 
   Recurso, 
@@ -13,7 +14,9 @@ import { apiClient } from './services/apiClient'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { StarfieldBackground } from './components/ui/StarfieldBackground'
-import { CyberParticles } from './components/ui/CyberParticles'
+import { IntroSplash } from './components/ui/IntroSplash'
+import { PageHero } from './components/layout/PageHero'
+import { ProjectContext } from './components/features/torre-zenith/ProjectContext'
 import { ToastContainer, ToastMessage } from './components/ui/Toast'
 import { TorreZenithNivel6 } from './components/features/torre-zenith/TorreZenithNivel6'
 import { SpacesMatrix } from './components/features/spaces/SpacesMatrix'
@@ -23,22 +26,10 @@ import { ResourceLoanModal } from './components/features/resources/ResourceLoanM
 import { IncidentBoard } from './components/features/incidents/IncidentBoard'
 import { IncidentReportModal } from './components/features/incidents/IncidentReportModal'
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
-import { 
-  Building2, 
-  Laptop, 
-  ShieldAlert, 
-  Activity, 
-  Sparkles, 
-  CheckCircle2, 
-  Radio,
-  Cpu,
-  Zap,
-  Gauge
-} from 'lucide-react'
+import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('3d-twin')
-  const [is3DMode, setIs3DMode] = useState<boolean>(true)
   const [isDemoMode, setIsDemoMode] = useState<boolean>(true)
 
   // Datos principales
@@ -215,21 +206,34 @@ export default function App() {
   ).length
 
   const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible').length
-  const porcentajeDisponibilidad = espacios.length > 0 
-    ? Math.round((espaciosDisponibles / espacios.length) * 100) 
-    : 100
+  const capacidadTotal = espacios.reduce((t, e) => t + e.capacidad, 0)
+  const reservasActivas = reservas.filter(r => r.estado === 'activa').length
+  const prestamosActivos = prestamos.filter(p => p.estado === 'activo').length
+  const recursosDisponibles = recursos.filter(r => r.estado === 'disponible').length
+  const recursosFueraDeServicio = recursos.filter(r => r.estado === 'danado' || r.estado === 'mantenimiento').length
+  const incidenciasAbiertas = incidencias.filter(i => i.estado !== 'resuelta').length
+  const incidenciasResueltas = incidencias.filter(i => i.estado === 'resuelta').length
+  const triajeIA = incidencias.length
+    ? Math.round((incidencias.filter(i => i.origenTriaje === 'ia').length / incidencias.length) * 100)
+    : 0
+
+  const visorRef = useRef<HTMLDivElement>(null)
+  const irAPestana = (tab: TabType) => {
+    setActiveTab(tab)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
-    <div className="relative min-h-screen flex flex-col cosmic-void-bg text-slate-100 selection:bg-cyan-400 selection:text-black">
+    <div className="relative min-h-screen flex flex-col cosmic-void-bg text-slate-100 selection:bg-sky-300 selection:text-slate-950">
+      {/* Intro de marca en cada carga */}
+      <IntroSplash />
+
       {/* Cielo estrellado con cometas fugaces */}
       <StarfieldBackground />
-      {/* Red de partículas holográficas interactivas con el cursor */}
-      <CyberParticles />
 
-      {/* Navbar Superior Flotante */}
       <Navbar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={irAPestana}
         onOpenReportModal={() => {
           setTriajePrecargado(null)
           setIsReportOpen(true)
@@ -239,178 +243,172 @@ export default function App() {
         incidenciasCriticasCount={incidenciasCriticasCount}
       />
 
-      {/* Contenedor Principal */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* HUD Holográfico de Telemetría Superior */}
-        <section className="holo-panel rounded-3xl p-6 sm:p-7 border border-white/10 shadow-2xl relative overflow-hidden bg-gradient-to-r from-[#050814]/90 via-[#0A1128]/85 to-[#050814]/90 backdrop-blur-2xl">
-          {/* Brillos ambientales */}
-          <div className="absolute -top-24 -left-24 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/70 border border-cyan-400/40 text-cyan-300 text-xs font-mono mb-3">
-                <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                <span>TELEMETRÍA EN VIVO · HUB CAMPUSLANDS</span>
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        {/* El Gemelo 3D se mantiene montado (en pausa) al cambiar de pestaña: así no se destruye ni
+            reconstruye el contexto WebGL, y volver es instantáneo. */}
+        <div className={activeTab === '3d-twin' ? 'entrada-suave space-y-8' : 'hidden'}>
+          <ProjectContext
+            onIr={irAPestana}
+            onVerPlano={() => visorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+          <div ref={visorRef} className="scroll-mt-28 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+              <div>
+                <p className="eyebrow flex items-center gap-2 text-sky-300">
+                  <Orbit className="h-3.5 w-3.5" /> Módulo 01 · Gemelo digital
+                </p>
+                <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  Torre Zenith · <span className="titulo-aurora">Nivel 6</span>
+                </h2>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-50 leading-tight">
-                Control Operativo <span className="titulo-aurora">Holográfico & Triaje IA</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-                Plataforma unificada para resolver la fricción del campus: semáforo de aforo 3D, máquina de estados de hardware y enrutamiento inteligente de solicitudes.
+              <p className="max-w-md text-sm text-slate-400">
+                Selecciona una sala para ver su estado y reservarla. Las reservas se guardan en el servidor y el plano se actualiza solo.
               </p>
             </div>
-
-            {/* Cuadrícula de Indicadores HUD */}
-            <div className="w-full lg:w-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Disponibilidad de Aulas */}
-              <div className="holo-card p-3.5 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Salas Libres</span>
-                  <Building2 className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-mono font-black text-white">
-                    {espaciosDisponibles}<span className="text-xs font-normal text-slate-400">/{espacios.length}</span>
-                  </p>
-                  <div className="w-full bg-white/10 h-1 rounded-full mt-2 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${porcentajeDisponibilidad}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Hardware Prestado */}
-              <div className="holo-card p-3.5 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">En Custodia</span>
-                  <Laptop className="w-4 h-4 text-purple-400" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-mono font-black text-purple-300">
-                    {prestamos.filter(p => p.estado === 'activo').length}
-                  </p>
-                  <span className="text-[10px] text-slate-400 font-mono">Límite: {config.max_prestamos_activos}/usr</span>
-                </div>
-              </div>
-
-              {/* Incidencias Críticas (RN-04) */}
-              <div className="holo-card p-3.5 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400">RN-04 Bloqueo</span>
-                  <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-mono font-black text-[#FF2A55]">
-                    {incidenciasCriticasCount}
-                  </p>
-                  <span className="text-[10px] font-mono text-rose-300">
-                    {incidenciasCriticasCount > 0 ? 'Espacio bloqueado' : 'Sin alertas'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Motor de Reglas Activo */}
-              <div className="holo-card p-3.5 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Reglas Dominio</span>
-                  <Cpu className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-xl font-mono font-black text-emerald-400">
-                    RN 1·2·3·4
-                  </p>
-                  <span className="text-[10px] font-mono text-emerald-300">Validador Activo</span>
-                </div>
-              </div>
-            </div>
+            {/* Plano 3D de Torre Zenith · Nivel 6 con reservas persistentes (backend /api/nivel6) */}
+            <TorreZenithNivel6 onToast={addToast} />
           </div>
-        </section>
+        </div>
 
-        {/* Contenido Dinámico de la Pestaña Activa */}
-        <section className="space-y-6">
-          {activeTab === '3d-twin' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-sky-300" />
-                    <span className="titulo-aurora">Torre Zenith · Nivel 6 — Reserva de salas</span>
-                  </h2>
-                  <p className="text-xs text-slate-400 font-medium">
-                    Recorre el plano en 3D, selecciona cualquiera de las diez salas y resérvala. Las reservas se guardan en el backend.
-                  </p>
-                </div>
-              </div>
+        <AnimatePresence mode="wait">
+          {activeTab !== '3d-twin' && (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-8"
+            >
+              {activeTab === 'spaces' && (
+                <>
+                  <PageHero
+                    acento="52 211 153"
+                    modulo="Módulo 02 · Espacios y aforo"
+                    icono={<Building2 />}
+                    titulo="Cada espacio, con su"
+                    tituloAcento="semáforo de aforo"
+                    descripcion="Supervisa la ocupación de aulas y cubículos, reserva con validación de horario y capacidad, y detecta al instante los espacios bloqueados por incidentes críticos."
+                    reglas={['RN-01 · Aforo y horario', 'RN-04 · Bloqueo por incidente']}
+                    kpis={[
+                      { etiqueta: 'Espacios', valor: espacios.length, detalle: `${capacidadTotal} plazas en total` },
+                      { etiqueta: 'Disponibles', valor: <span className="text-emerald-300">{espaciosDisponibles}</span>, detalle: 'Listos para reservar' },
+                      { etiqueta: 'Reservas activas', valor: reservasActivas, detalle: `Máx. ${config.max_horas_reserva} h por reserva` },
+                      { etiqueta: 'Horario', valor: `${config.hora_apertura}–${config.hora_cierre} h`, detalle: `Aforo al ${Math.round(config.factor_aforo * 100)} %` }
+                    ]}
+                  />
+                  <SpacesMatrix
+                    espacios={espacios}
+                    reservas={reservas}
+                    incidencias={incidencias}
+                    config={config}
+                    onSelectEspacio={(esp) => setEspacioParaReserva(esp)}
+                    onReservarEspacio={(esp) => {
+                      setEspacioParaReserva(esp)
+                      setIsBookingOpen(true)
+                    }}
+                    onFocusIn3D={(esp) => {
+                      setEspacioParaReserva(esp)
+                      irAPestana('3d-twin')
+                    }}
+                  />
+                </>
+              )}
 
-              {/* Plano 3D de Torre Zenith · Nivel 6 con reservas persistentes (backend /api/nivel6) */}
-              <TorreZenithNivel6 onToast={addToast} />
+              {activeTab === 'resources' && (
+                <>
+                  <PageHero
+                    acento="167 139 250"
+                    modulo="Módulo 03 · Hardware y préstamos"
+                    icono={<Laptop />}
+                    titulo="Equipos con"
+                    tituloAcento="trazabilidad total"
+                    descripcion="Inventario de laptops, kits y periféricos con una máquina de estados estricta: cada préstamo, devolución y daño queda registrado, y nadie supera su cupo de préstamos."
+                    reglas={[`RN-02 · Máx. ${config.max_prestamos_activos} préstamos por persona`, 'RN-03 · Máquina de estados']}
+                    kpis={[
+                      { etiqueta: 'Equipos', valor: recursos.length, detalle: 'En inventario' },
+                      { etiqueta: 'Disponibles', valor: <span className="text-violet-300">{recursosDisponibles}</span>, detalle: 'Listos para prestar' },
+                      { etiqueta: 'En préstamo', valor: prestamosActivos, detalle: 'Bajo custodia' },
+                      { etiqueta: 'Fuera de servicio', valor: recursosFueraDeServicio, detalle: 'Dañados o en mantenimiento' }
+                    ]}
+                  />
+                  <ResourceInventory
+                    recursos={recursos}
+                    prestamos={prestamos}
+                    incidencias={incidencias}
+                    config={config}
+                    onPrestarRecurso={(rec) => {
+                      setRecursoParaPrestamo(rec)
+                      setIsLoanOpen(true)
+                    }}
+                    onCambiarEstado={handleCambiarEstadoRecurso}
+                    onDevolverPrestamo={handleDevolverPrestamo}
+                  />
+                </>
+              )}
 
-            </div>
+              {activeTab === 'incidents' && (
+                <>
+                  <PageHero
+                    acento="251 113 133"
+                    modulo="Módulo 04 · Incidentes con IA"
+                    icono={<Sparkles />}
+                    titulo="Del reporte a la solución,"
+                    tituloAcento="priorizado por IA"
+                    descripcion="Describe el problema en lenguaje natural: la IA propone categoría, prioridad y área responsable. Lo dudoso pasa a revisión humana y lo crítico bloquea el espacio afectado."
+                    reglas={['RN-04 · Bloqueo preventivo', `Revisión humana bajo ${Math.round(config.umbral_confianza_ia * 100)} % de confianza`]}
+                    kpis={[
+                      { etiqueta: 'Abiertas', valor: incidenciasAbiertas, detalle: 'En curso o sin asignar' },
+                      { etiqueta: 'Críticas', valor: <span className="text-rose-300">{incidenciasCriticasCount}</span>, detalle: incidenciasCriticasCount ? 'Requieren atención' : 'Sin alertas' },
+                      { etiqueta: 'Resueltas', valor: incidenciasResueltas, detalle: 'Cerradas' },
+                      { etiqueta: 'Triaje IA', valor: `${triajeIA} %`, detalle: 'Clasificadas por IA' }
+                    ]}
+                  />
+                  <IncidentBoard
+                    incidencias={incidencias}
+                    espacios={espacios}
+                    recursos={recursos}
+                    config={config}
+                    onResolverIncidencia={handleResolverIncidencia}
+                    onAbrirReporteModalConTriaje={(triaje) => {
+                      setTriajePrecargado(triaje)
+                      setIsReportOpen(true)
+                    }}
+                  />
+                </>
+              )}
+
+              {activeTab === 'jury' && (
+                <>
+                  <PageHero
+                    acento="251 191 36"
+                    modulo="Módulo 05 · Inspector del jurado"
+                    icono={<Sliders />}
+                    titulo="Reglas de negocio,"
+                    tituloAcento="demostradas en vivo"
+                    descripcion="Ajusta los parámetros del negocio en caliente y ejecuta la batería de pruebas que demuestra cada regla frente al jurado, con resultados y códigos verificables."
+                    reglas={['RN-01', 'RN-02', 'RN-03', 'RN-04']}
+                    kpis={[
+                      { etiqueta: 'Reglas activas', valor: 4, detalle: 'RN-01 a RN-04' },
+                      { etiqueta: 'Horario', valor: `${config.hora_apertura}–${config.hora_cierre} h`, detalle: `Máx. ${config.max_horas_reserva} h por reserva` },
+                      { etiqueta: 'Cupo préstamos', valor: config.max_prestamos_activos, detalle: 'Por persona' },
+                      { etiqueta: 'Umbral IA', valor: `${Math.round(config.umbral_confianza_ia * 100)} %`, detalle: 'Confianza mínima' }
+                    ]}
+                  />
+                  <JuryRulesInspector
+                    config={config}
+                    onUpdateConfig={handleUpdateConfig}
+                    espacios={espacios}
+                    recursos={recursos}
+                    reservas={reservas}
+                    prestamos={prestamos}
+                    incidencias={incidencias}
+                  />
+                </>
+              )}
+            </motion.div>
           )}
-
-          {activeTab === 'spaces' && (
-            <SpacesMatrix
-              espacios={espacios}
-              reservas={reservas}
-              incidencias={incidencias}
-              config={config}
-              onSelectEspacio={(esp) => setEspacioParaReserva(esp)}
-              onReservarEspacio={(esp) => {
-                setEspacioParaReserva(esp)
-                setIsBookingOpen(true)
-              }}
-              onFocusIn3D={(esp) => {
-                setEspacioParaReserva(esp)
-                setActiveTab('3d-twin')
-                setIs3DMode(true)
-              }}
-            />
-          )}
-
-          {activeTab === 'resources' && (
-            <ResourceInventory
-              recursos={recursos}
-              prestamos={prestamos}
-              incidencias={incidencias}
-              config={config}
-              onPrestarRecurso={(rec) => {
-                setRecursoParaPrestamo(rec)
-                setIsLoanOpen(true)
-              }}
-              onCambiarEstado={handleCambiarEstadoRecurso}
-              onDevolverPrestamo={handleDevolverPrestamo}
-            />
-          )}
-
-          {activeTab === 'incidents' && (
-            <IncidentBoard
-              incidencias={incidencias}
-              espacios={espacios}
-              recursos={recursos}
-              config={config}
-              onResolverIncidencia={handleResolverIncidencia}
-              onAbrirReporteModalConTriaje={(triaje) => {
-                setTriajePrecargado(triaje)
-                setIsReportOpen(true)
-              }}
-            />
-          )}
-
-          {activeTab === 'jury' && (
-            <JuryRulesInspector
-              config={config}
-              onUpdateConfig={handleUpdateConfig}
-              espacios={espacios}
-              recursos={recursos}
-              reservas={reservas}
-              prestamos={prestamos}
-              incidencias={incidencias}
-            />
-          )}
-        </section>
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
