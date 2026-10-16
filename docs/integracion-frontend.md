@@ -158,16 +158,19 @@ POST  /api/incidencias/triaje
 
 POST  /api/incidencias
       body {titulo, descripcion, espacio_id?, recurso_id?, categoria, prioridad, area_responsable,
-            origen_triaje: "ia"|"manual", confianza_ia?, justificacion_ia?}
+            propuesta_ia?: <la respuesta de /triaje, tal cual>}
       → 201 Incidencia
+      El backend decide origen_triaje: "ia" si categoria/prioridad/area coinciden con propuesta_ia,
+      "manual" si la persona las ajustó o no usó la IA.
       Efectos (en una transacción, con auditar()):
-        - si trae recurso_id y el recurso está fijo en un espacio, guardar también ese espacio_id
+        - si trae recurso_id y el recurso está fijo en un espacio, guarda también ese espacio_id
           (así "el videobeam de Cosmos echa humo" bloquea el recurso Y el aula, RN-04)
-        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y hay recurso disponible → recurso a "mantenimiento"
+        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y el recurso puede pasar a mantenimiento → "mantenimiento"
+          (si está prestado no se toca: RN-04 lo bloquea igual por la incidencia abierta)
 
 PATCH /api/incidencias/{id}
-      body {estado: "en_proceso"|"resuelta"}
-      → 200 Incidencia   (resuelta → resuelta_en = ahora)
+      body {estado: "abierta"|"en_proceso"|"resuelta", observacion?: str}
+      → 200 Incidencia   (resuelta → resuelta_en = ahora; una resuelta no se reabre → 409 RN-08)
       El recurso NO vuelve solo a "disponible": se pasa explícitamente con PATCH /api/recursos/{id}/estado.
 ```
 
@@ -188,6 +191,21 @@ IDs de espacio y recurso son **texto**.
 | Proveedor de IA autorizado + clave en `.env` | Organizadores | IA en vivo |
 
 ---
+
+## 6.1 Login y roles (nuevo)
+
+```
+POST /api/auth/login   {usuario, clave}
+  → 200 {token, tipo: "bearer", expira_en_horas, usuario: {usuario, nombre, rol}}
+  → 401 {codigo: "AUTH-401", mensaje: "Usuario o clave incorrectos."}
+GET  /api/auth/yo      → {usuario, nombre, rol}
+```
+- Todas las rutas salvo `/api/health`, `/api/catalogos`, `/api/reglas` y el login exigen `Authorization: Bearer <token>`.
+- **401** (sesión vencida o inválida) → borrar la sesión y volver al login. **403** → mostrar el mensaje (no tiene permiso).
+- Rol `usuario`: el `solicitante` de reservas y préstamos debe ser su `nombre` → prellenarlo con `usuario.nombre` y no dejarlo editable.
+- Ocultar a `usuario` los botones de admin: crear/editar espacios y recursos, cambiar estado de recurso, devolución, cambiar estado de incidencia, pestañas de Datos y Auditoría. (El backend igual lo bloquea con 403.)
+- Guardar el token en `sessionStorage` (envuelto en try/catch), nunca en el código.
+- Referencia: `frontend/src/api.js` y `frontend/src/components/Login.jsx` en `develop`.
 
 ## 7. Checklist de requisitos después de integrar
 
