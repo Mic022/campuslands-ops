@@ -3,7 +3,6 @@ import { LogIn, Lock, User } from 'lucide-react'
 import { authApi } from '../../services/api/authApi'
 import { ApiError } from '../../services/api/baseClient'
 import { Sesion } from '../../services/sesion'
-import { StarfieldBackground } from '../ui/StarfieldBackground'
 
 interface LoginScreenProps {
   onEntrar: (sesion: Sesion) => void
@@ -34,7 +33,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onEntrar }) => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center cosmic-void-bg px-4 text-slate-100">
-      <StarfieldBackground />
       <form
         onSubmit={entrar}
         className="relative z-10 w-full max-w-sm space-y-5 rounded-2xl border border-white/10 bg-slate-950/80 p-7 shadow-2xl backdrop-blur"

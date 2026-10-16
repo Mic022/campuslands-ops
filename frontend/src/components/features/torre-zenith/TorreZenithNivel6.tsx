@@ -1,7 +1,8 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { SALAS_GEOMETRIA } from '../../../data/torreZenithNivel6'
-import { reservasApi, tokenAdmin } from '../../../services/reservasApi'
+import { reservasApi } from '../../../services/reservasApi'
+import { esAdmin } from '../../../services/sesion'
 import { EstadoVisual, Nivel6Estado, ReglasReserva, SalaEstado, SalaId } from '../../../types/torreZenith'
 import { FloorPlan3D } from '../../../scenes/torre-zenith/FloorPlan3D'
 import { ComandoCamara, PeticionCamara } from '../../../scenes/torre-zenith/CameraRig'
@@ -85,8 +86,7 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
 
   useEffect(() => {
     reservasApi.getReglas().then(setReglas).catch(() => undefined)
-    const t = tokenAdmin.leer()
-    if (t) reservasApi.verificarAdmin(t).then(() => setAdmin(true)).catch(() => tokenAdmin.guardar(null))
+    setAdmin(esAdmin())   // el modo operador lo da la sesión de administrador
   }, [])
 
   const refrescar = () => {
@@ -158,7 +158,7 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
       {/* Título */}
       <div className="pointer-events-none absolute left-1/2 top-3 hidden -translate-x-1/2 text-center lg:block">
         <p className="text-[10px] font-mono uppercase tracking-[0.35em] text-cyan-400/90">Torre Zenith · Plano arquitectónico</p>
-        <p className="titulo-aurora text-base font-black">Nivel 6 — 10 salas reservables</p>
+        <p className="titulo-aurora text-base font-black">Nivel 6 — {SALAS_GEOMETRIA.length} salas reservables</p>
         {consulta && <p className="text-[11px] capitalize text-amber-300">Consultando {fechaLarga(consulta.fecha)} · {consulta.hora}</p>}
       </div>
 

@@ -4,6 +4,7 @@ import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
 import { Calendar, Clock, Users, User, ShieldAlert } from 'lucide-react'
+import { esAdmin, nombreSesion } from '../../../services/sesion'
 
 interface SpaceBookingModalProps {
   isOpen: boolean
@@ -28,7 +29,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
 }) => {
   const hoyStr = new Date().toISOString().slice(0, 10)
   const [fecha, setFecha] = useState(hoyStr)
-  const [solicitanteNombre, setSolicitanteNombre] = useState('')
+  const [solicitanteNombre, setSolicitanteNombre] = useState(nombreSesion())
   const [horaInicio, setHoraInicio] = useState('14:00')
   const [horaFin, setHoraFin] = useState('16:00')
   const [numPersonas, setNumPersonas] = useState(15)
@@ -130,6 +131,7 @@ export const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({
               type="text"
               required
               value={solicitanteNombre}
+              readOnly={!esAdmin()}
               onChange={e => setSolicitanteNombre(e.target.value)}
               placeholder="Ej. Ing. Diana Vargas"
               className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"

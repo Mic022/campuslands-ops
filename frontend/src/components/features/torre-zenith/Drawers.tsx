@@ -96,8 +96,6 @@ export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admi
   const [lista, setLista] = useState<ReservaPrivada[]>([])
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
   const [mensajeError, setMensajeError] = useState('')
-  const [token, setToken] = useState('')
-  const [verificando, setVerificando] = useState(false)
 
   const cargar = async () => {
     setEstado('cargando')
@@ -115,22 +113,7 @@ export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pestana, admin, version])
 
-  const entrarAdmin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setVerificando(true)
-    try {
-      await reservasApi.verificarAdmin(token.trim())
-      tokenAdmin.guardar(token.trim())
-      setToken('')
-      onAdmin(true)
-      onToast('info', 'Modo operador activo: mantenimiento e historial completo habilitados.', 'ADMIN')
-    } catch (err) {
-      const er = err as ReservaApiError
-      onToast('error', er.message, er.codigo)
-    } finally {
-      setVerificando(false)
-    }
-  }
+
 
   const color = (id: SalaId) => SALAS_GEOMETRIA.find(g => g.id === id)?.color
 
@@ -185,33 +168,10 @@ export const MyReservationsDrawer: React.FC<MyReservationsDrawerProps> = ({ admi
           </p>
         ))}
 
-      <div className="mt-5 border-t border-slate-800 pt-3">
-        {admin ? (
-          <button
-            onClick={() => {
-              tokenAdmin.guardar(null)
-              setPestana('mias')
-              onAdmin(false)
-            }}
-            className={boton}
-          >
-            <LogOut className="h-3.5 w-3.5" /> Salir del modo operador
-          </button>
-        ) : (
-          <form onSubmit={entrarAdmin} className="flex gap-2">
-            <input
-              type="password"
-              value={token}
-              onChange={e => setToken(e.target.value)}
-              placeholder="Token de operador"
-              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-white"
-              autoComplete="off"
-            />
-            <button type="submit" disabled={!token.trim() || verificando} className={boton}>
-              <KeyRound className="h-3.5 w-3.5" /> Operador
-            </button>
-          </form>
-        )}
+      <div className="mt-5 border-t border-slate-800 pt-3 text-xs text-slate-400">
+        {admin
+          ? 'Modo operador activo (sesión de administrador): historial completo y mantenimiento habilitados.'
+          : 'El modo operador (historial completo y mantenimiento) se activa iniciando sesión como administrador.'}
       </div>
     </Cajon>
   )

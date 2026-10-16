@@ -54,7 +54,7 @@ export const FloorNavigation: React.FC<FloorNavigationProps> = p => (
     <Boton titulo={p.mostrarNombres ? 'Ocultar nombres' : 'Mostrar nombres'} activo={p.mostrarNombres} onClick={p.onNombres}><Tag className="h-4 w-4" /></Boton>
     <Boton titulo={p.murosVisibles ? 'Ocultar paredes' : 'Mostrar paredes'} activo={p.murosVisibles} onClick={p.onMuros}><Layers className="h-4 w-4" /></Boton>
     <Separador />
-    <Boton titulo="Listado de las 10 salas" onClick={p.onLista}><List className="h-4 w-4" /></Boton>
+    <Boton titulo="Listado de salas" onClick={p.onLista}><List className="h-4 w-4" /></Boton>
     <Boton titulo="Mis reservas" onClick={p.onReservas}><CalendarCheck className="h-4 w-4" /></Boton>
   </nav>
 )

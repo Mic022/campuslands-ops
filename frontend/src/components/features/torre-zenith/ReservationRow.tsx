@@ -23,7 +23,7 @@ interface ReservationRowProps {
 export const ReservationRow: React.FC<ReservationRowProps> = ({ reserva: r, salaNombre, salaColor, admin, onCambio, onToast }) => {
   const [confirmar, setConfirmar] = useState(false)
   const [cancelando, setCancelando] = useState(false)
-  const propia = esPropia(r.id)
+  const propia = esPropia(r)
   const priv = 'solicitante' in r ? r : null
   const cancelable = r.estado === 'activa' && (propia || admin)
 

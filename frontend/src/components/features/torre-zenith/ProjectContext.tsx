@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { TabType } from '../../layout/Navbar'
 import { LOGO_URL } from '../../layout/Brand'
+import { SALAS_GEOMETRIA } from '../../../data/torreZenithNivel6'
 
 interface ProjectContextProps {
   onIr: (tab: TabType) => void
@@ -21,7 +22,7 @@ interface ProjectContextProps {
 }
 
 const MODULOS: { tab: TabType; icono: React.ReactNode; titulo: string; texto: string; acento: string }[] = [
-  { tab: '3d-twin', icono: <Orbit />, titulo: 'Gemelo 3D y reservas', texto: 'El Nivel 6 de Torre Zenith en 3D, con sus 10 salas reservables en tiempo real.', acento: '125 211 252' },
+  { tab: '3d-twin', icono: <Orbit />, titulo: 'Gemelo 3D y reservas', texto: `El Nivel 6 de Torre Zenith en 3D, con sus ${SALAS_GEOMETRIA.length} salas reservables en tiempo real.`, acento: '125 211 252' },
   { tab: 'spaces', icono: <Building2 />, titulo: 'Espacios y aforo', texto: 'Ocupación, capacidad y reservas de aulas y cubículos del campus.', acento: '52 211 153' },
   { tab: 'resources', icono: <Laptop />, titulo: 'Hardware y préstamos', texto: 'Inventario de equipos con trazabilidad estricta de cada préstamo.', acento: '167 139 250' },
   { tab: 'incidents', icono: <Sparkles />, titulo: 'Incidentes con IA', texto: 'Reporte y triaje inteligente que prioriza y enruta cada incidente.', acento: '251 113 133' },
@@ -35,9 +36,9 @@ const PASOS = [
 ]
 
 const DATOS = [
-  { valor: '10', texto: 'salas reservables' },
-  { valor: '2560 m²', texto: 'planta del Nivel 6' },
-  { valor: '4', texto: 'reglas de negocio' },
+  { valor: String(SALAS_GEOMETRIA.length), texto: 'salas reservables' },
+  { valor: '2', texto: 'roles: admin y usuario' },
+  { valor: '8', texto: 'reglas de negocio (RN-01 a RN-08)' },
   { valor: '20 s', texto: 'refresco del estado' }
 ]
 

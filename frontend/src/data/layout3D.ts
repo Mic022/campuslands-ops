@@ -7,7 +7,6 @@
 
 export interface EspacioLayout3D {
   piso: number
-  equipamiento: string[]
   coordenadas3D: [number, number, number]
   dimensiones3D: [number, number, number]
   colorTema?: string
@@ -16,84 +15,72 @@ export interface EspacioLayout3D {
 export const LAYOUT_3D_ESPACIOS: Record<string, EspacioLayout3D> = {
   auditorio: {
     piso: 1,
-    equipamiento: ['Proyector Láser 4K', 'Audio envolvente', 'Microfonía inalámbrica', 'Atril digital'],
     coordenadas3D: [-3.5, 0.6, -1.8],
     dimensiones3D: [4.0, 1.2, 3.2],
     colorTema: '#38BDF8'
   },
   cosmos: {
     piso: 1,
-    equipamiento: ['Estaciones de trabajo', 'Pantalla interactiva 85"', 'Fibra óptica 1Gbps'],
     coordenadas3D: [0.8, 0.6, -1.8],
     dimensiones3D: [3.2, 1.2, 2.6],
     colorTema: '#818CF8'
   },
   skylab: {
     piso: 1,
-    equipamiento: ['Bancos de trabajo', 'Proyector HD', 'Pizarras de cristal'],
     coordenadas3D: [4.8, 0.6, -1.8],
     dimensiones3D: [3.0, 1.2, 2.6],
     colorTema: '#34D399'
   },
   spooki: {
     piso: 1,
-    equipamiento: ['Smart TV 65"', 'Videoconferencia 4K', 'Pizarras magnéticas'],
     coordenadas3D: [-4.0, 0.6, 1.8],
     dimensiones3D: [2.5, 1.2, 2.0],
     colorTema: '#F472B6'
   },
   apolo: {
     piso: 1,
-    equipamiento: ['Estaciones Linux', 'Pizarra acrílica dual', 'Proyector'],
     coordenadas3D: [-1.2, 0.6, 1.8],
     dimensiones3D: [2.5, 1.2, 2.0],
     colorTema: '#FBBF24'
   },
   artemis: {
     piso: 1,
-    equipamiento: ['Monitores ultra-wide', 'Mesa de juntas ergonómica', 'Sistema Polycom'],
     coordenadas3D: [1.6, 0.6, 1.8],
     dimensiones3D: [2.5, 1.2, 2.0],
     colorTema: '#A78BFA'
   },
   blanca: {
     piso: 2,
-    equipamiento: ['Mesa redonda', 'Smart TV 55"', 'Aislamiento acústico'],
     coordenadas3D: [-3.8, 2.2, -1.8],
     dimensiones3D: [2.2, 1.1, 2.0],
     colorTema: '#E2E8F0'
   },
   azul: {
     piso: 2,
-    equipamiento: ['Pizarra magnética', 'Pantalla 65"', 'Webcam 4K'],
     coordenadas3D: [-1.2, 2.2, -1.8],
     dimensiones3D: [2.2, 1.1, 2.0],
     colorTema: '#38BDF8'
   },
   'sala-verde-1': {
     piso: 2,
-    equipamiento: ['Estaciones de mentoría', 'Monitor dual USB-C'],
     coordenadas3D: [1.5, 2.2, -1.8],
     dimensiones3D: [2.0, 1.1, 1.8],
     colorTema: '#10B981'
   },
   'sala-verde-2': {
     piso: 2,
-    equipamiento: ['Estaciones de mentoría', 'Monitor dual USB-C'],
     coordenadas3D: [4.0, 2.2, -1.8],
     dimensiones3D: [2.0, 1.1, 1.8],
     colorTema: '#10B981'
   },
   'sala-amarilla-1': {
     piso: 2,
-    equipamiento: ['Smart TV 50"', 'Mesa de ideación'],
     coordenadas3D: [-2.5, 2.2, 1.8],
     dimensiones3D: [2.0, 1.1, 1.8],
     colorTema: '#FBBF24'
   },
   'sala-amarilla-2': {
     piso: 2,
-    equipamiento: ['Smart TV 50"', 'Mesa de ideación'],
     coordenadas3D: [1.5, 2.2, 1.8],
     dimensiones3D: [2.0, 1.1, 1.8],
     colorTema: '#FBBF24'
@@ -104,7 +91,6 @@ export function obtenerLayout3D(id: string): EspacioLayout3D {
   return (
     LAYOUT_3D_ESPACIOS[id] || {
       piso: 1,
-      equipamiento: ['Equipamiento estándar'],
       coordenadas3D: [0, 0.6, 0],
       dimensiones3D: [2.5, 1.2, 2.2],
       colorTema: '#38BDF8'

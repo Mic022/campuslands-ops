@@ -128,7 +128,7 @@ export const AITriageAssistant: React.FC<AITriageAssistantProps> = ({
           rows={2}
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
-          placeholder="Describe la incidencia con tus propias palabras (ej: 'El proyector del Aula Lovelace no enciende y sale chispa')..."
+          placeholder="Describe la incidencia con tus propias palabras (ej: 'El videobeam de Cosmos no enciende y sale chispa')..."
           className="flex-1 p-3.5 bg-black/50 border border-white/15 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 resize-none transition-colors"
         />
         <Button

@@ -235,7 +235,13 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
     i => i.prioridad === 'critica' && i.estado !== 'resuelta'
   ).length
 
-  const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible').length
+  // Disponible = estado 'disponible' y sin incidencia abierta bloqueante (RN-04; la decisión final es del backend).
+  const espacioBloqueado = (id: string) =>
+    incidencias.some(
+      i => i.espacioId === id && i.estado !== 'resuelta' && !!i.prioridad &&
+        !!config?.prioridades_bloqueantes.includes(i.prioridad)
+    )
+  const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible' && !espacioBloqueado(e.id)).length
   const capacidadTotal = espacios.reduce((t, e) => t + e.capacidad, 0)
   const reservasActivas = reservas.filter(r => r.estado === 'activa').length
   const prestamosActivos = prestamos.filter(p => p.estado === 'activo').length
@@ -295,7 +301,7 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
                 Selecciona una sala para ver su estado y reservarla. Las reservas se guardan en el servidor y el plano se actualiza solo.
               </p>
             </div>
-            {/* Plano 3D de Torre Zenith · Nivel 6 con reservas persistentes (backend /api/nivel6) */}
+            {/* Plano 3D de Torre Zenith · Nivel 6: espacios, reservas, incidencias y recursos del backend */}
             <TorreZenithNivel6 onToast={addToast} />
           </div>
         </div>

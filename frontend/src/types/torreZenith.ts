@@ -1,14 +1,17 @@
+/** IDs oficiales de las salas reservables del nivel 6 (los mismos de GET /api/espacios). */
 export type SalaId =
-  | 'sala-verde'
-  | 'sala-amarilla'
-  | 'auditorio'
-  | 'sala-azul'
-  | 'sala-blanca'
+  | 'spooki'
+  | 'artemis'
+  | 'apolo'
   | 'skylab'
-  | 'salon-cosmos'
-  | 'salon-artemis'
-  | 'salon-apolo'
-  | 'salon-sputnik'
+  | 'cosmos'
+  | 'sala-verde-1'
+  | 'sala-verde-2'
+  | 'auditorio'
+  | 'azul'
+  | 'blanca'
+  | 'sala-amarilla-1'
+  | 'sala-amarilla-2'
 
 /** Ocupación calculada por el backend para el instante consultado. */
 export type Ocupacion = 'disponible' | 'reservada' | 'mantenimiento'

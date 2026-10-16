@@ -42,7 +42,7 @@ const SombrasEstaticas: React.FC<{ version: boolean }> = ({ version }) => {
   return null
 }
 
-/** Escena 3D del Nivel 6 de Torre Zenith: un único piso con sus diez salas reservables. */
+/** Escena 3D del Nivel 6 de Torre Zenith: un único piso con sus salas reservables (las de GET /api/espacios). */
 export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
   nombres,
   estados,

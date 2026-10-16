@@ -4,6 +4,7 @@ import { Modal } from '../../ui/Modal'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
 import { Laptop, User, Calendar, Clock, ShieldAlert } from 'lucide-react'
+import { esAdmin, nombreSesion } from '../../../services/sesion'
 
 interface ResourceLoanModalProps {
   isOpen: boolean
@@ -23,7 +24,7 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
   onSubmitPrestamo
 }) => {
   const hoyStr = new Date().toISOString().slice(0, 10)
-  const [solicitanteNombre, setSolicitanteNombre] = useState('')
+  const [solicitanteNombre, setSolicitanteNombre] = useState(nombreSesion())
   const [fechaDevolucion, setFechaDevolucion] = useState(hoyStr)
   const [horaDevolucion, setHoraDevolucion] = useState('18:00')
   const [loading, setLoading] = useState(false)
@@ -63,7 +64,7 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Despachar Préstamo: ${recurso.nombre}`}
-      subtitle={`Código: ${recurso.codigo} · Ubicación: ${recurso.espacioActualNombre || 'Almacén TI'}`}
+      subtitle={`Código: ${recurso.codigo} · Ubicación: ${recurso.espacioActualNombre || 'sin espacio asignado'}`}
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,6 +104,7 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
               type="text"
               required
               value={solicitanteNombre}
+              readOnly={!esAdmin()}
               onChange={e => setSolicitanteNombre(e.target.value)}
               placeholder="Ej. Mateo Salamanca"
               className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/15 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
