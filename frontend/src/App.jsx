@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { alExpirarSesion, guardarSesion, leerSesion } from './api.js'
+import Asistente from './components/Asistente.jsx'
 import Datos from './components/Datos.jsx'
 import Espacios from './components/Espacios.jsx'
 import Login from './components/Login.jsx'
@@ -8,6 +9,7 @@ import Reglas from './components/Reglas.jsx'
 
 const PESTANAS = [
   { id: 'panel', titulo: 'Panel', Componente: Panel },
+  { id: 'asistente', titulo: 'Asistente IA', Componente: Asistente },
   { id: 'espacios', titulo: 'Espacios', Componente: Espacios },
   { id: 'datos', titulo: 'Datos', Componente: Datos, soloAdmin: true },
   { id: 'reglas', titulo: 'Reglas', Componente: Reglas },

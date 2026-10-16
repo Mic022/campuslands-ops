@@ -1,15 +1,20 @@
-"""Rutas de espacios y reservas."""
-from datetime import date
+"""Rutas de espacios, reservas y recomendación de espacios."""
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
+from app.auth.dependencias import autorizar
 from app.config.catalogos import EstadoEspacio, EstadoReserva, TipoEspacio
+from app.config.equipamiento import equipamiento
+from app.config.permisos import ROL_ADMIN
 from app.db import get_session
-from app.models import Espacio, Reserva
+from app.models import Espacio, Reserva, Usuario
 from app.rules.espacios import aforo_permitido
+from app.schemas.comunes import a_hora_local
 from app.schemas.espacios import EspacioActualizar, EspacioCrear, ReservaCrear
 from app.services import espacios as servicio
+from app.services import recomendador
 
 router = APIRouter(prefix="/api", tags=["espacios"])
 
@@ -27,13 +32,36 @@ def listar_espacios(
         db, tipo and tipo.value, estado and estado.value, aforo_min
     )
     # aforo_permitido refleja el FACTOR_AFORO vigente, para que la UI no lo calcule.
-    return [{**e.model_dump(), "aforo_permitido": aforo_permitido(e.aforo)} for e in espacios]
+    return [_con_calculados(e) for e in espacios]
+
+
+def _con_calculados(e: Espacio) -> dict:
+    return {**e.model_dump(), "aforo_permitido": aforo_permitido(e.aforo), "equipamiento": equipamiento(e.id)}
+
+
+@router.get("/recomendaciones")
+def recomendar_espacios(
+    asistentes: int = Query(ge=1, le=10_000),
+    inicio: datetime = Query(),
+    fin: datetime = Query(),
+    con_equipos: bool | None = None,
+    solicitante: str | None = Query(None, max_length=120),
+    db: Session = Depends(get_session),
+    usuario: Usuario | None = Depends(autorizar),
+):
+    """Espacios que sirven para esa necesidad, del que menos capacidad desperdicia al que más. No usa IA.
+
+    Es el respaldo del asistente cuando la IA no está disponible. No reserva nada.
+    """
+    if usuario is not None and usuario.rol != ROL_ADMIN:
+        solicitante = usuario.nombre
+    necesidad = recomendador.Necesidad(asistentes, a_hora_local(inicio), a_hora_local(fin), con_equipos, solicitante)
+    return recomendador.recomendar(db, necesidad).como_dict()
 
 
 @router.get("/espacios/{espacio_id}")
 def obtener_espacio(espacio_id: str, db: Session = Depends(get_session)):
-    e = servicio.obtener_espacio(db, espacio_id)
-    return {**e.model_dump(), "aforo_permitido": aforo_permitido(e.aforo)}
+    return _con_calculados(servicio.obtener_espacio(db, espacio_id))
 
 
 @router.post("/espacios", status_code=201, response_model=Espacio)

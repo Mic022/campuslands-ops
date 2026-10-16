@@ -89,6 +89,30 @@ instrucciones; la salida solo puede tomar valores del catálogo; el texto se mue
 `POST /api/incidencias` (el backend decide si el triaje fue `ia` o `manual` y aplica RN-04) →
 `PATCH /api/incidencias/{id}` (en proceso / resuelta).
 
+### Asistente de reservas y reportes (optimización de espacios)
+En la pestaña **Asistente IA** la persona escribe lo que necesita: *"un salón con computadores para 30
+personas mañana de 10 a 12 a nombre de Ana"* o *"el TV de Cosmos no enciende"*.
+
+- **La IA solo interpreta** (`app/ai/asistente.py`): convierte la conversación en una intención con
+  esquema cerrado (reservar / consultar / reportar, personas, con o sin computadores, día, hora, a
+  nombre de quién, espacio o recurso nombrado). Si falta un dato, el asistente lo pide; la conversación
+  completa se reenvía para que combine datos de varios mensajes.
+- **El recomendador decide** (`app/services/recomendador.py`, sin IA): evalúa cada espacio con las mismas
+  reglas de una reserva —RN-04 (operable), RN-05 (horario), RN-02 (aforo), RN-01 (libre a esa hora)— y el
+  equipamiento pedido, y ordena los que pasan por **el que menos capacidad desperdicia**. Nunca propone
+  un espacio ya reservado. Si ninguno sirve, ofrece las horas libres más cercanas ese mismo día y explica
+  por qué se descartó cada espacio (con su código de regla). Los textos sobre disponibilidad los arma el
+  backend con esos resultados, no la IA.
+- **La persona confirma:** cada recomendación trae la reserva lista; el botón *Reservar* la envía a
+  `POST /api/reservas`, que vuelve a validar todo. Un reporte pasa por el triaje de incidencias y queda como
+  borrador editable hasta *Confirmar y registrar* (`POST /api/incidencias`).
+- **Equipamiento** (`app/config/equipamiento.py`): Auditorio, Cosmos, Blanca, Pecera, las salas verdes y las
+  amarillas no tienen computadores pero sí TV; el resto tiene computadores. `GET /api/espacios` lo expone
+  como `equipamiento: computadores | tv`.
+- **Sin IA:** si el asistente responde 503, la misma pestaña muestra el **buscador manual**, que llama a
+  `GET /api/recomendaciones?asistentes=&inicio=&fin=&con_equipos=` (mismo recomendador, sin IA).
+- Un usuario sin rol admin solo reserva a su nombre; el admin puede reservar por otra persona.
+
 ## Reglas de negocio implementadas
 | Código | Regla | Dónde está |
 |---|---|---|

@@ -2,6 +2,7 @@ import { useApi } from '../useApi.js'
 import { Consulta, Vacio } from './Estado.jsx'
 
 const TITULOS = { aula: 'Aulas', cubiculo: 'Cubículos' }
+const EQUIPAMIENTO = { computadores: 'Computadores', tv: 'TV (sin computadores)' }
 
 export default function Espacios() {
   const consulta = useApi('/espacios')
@@ -17,7 +18,7 @@ export default function Espacios() {
             <h2>{TITULOS[tipo] ?? tipo} <span className="contador">{lista.length}</span></h2>
             <table>
               <thead>
-                <tr><th>ID</th><th>Nombre</th><th className="num">Aforo</th><th>Estado</th></tr>
+                <tr><th>ID</th><th>Nombre</th><th className="num">Aforo</th><th>Equipamiento</th><th>Estado</th></tr>
               </thead>
               <tbody>
                 {lista.map((e) => (
@@ -25,6 +26,7 @@ export default function Espacios() {
                     <td><code>{e.id}</code></td>
                     <td>{e.nombre}</td>
                     <td className="num">{e.aforo}</td>
+                    <td>{EQUIPAMIENTO[e.equipamiento] ?? '—'}</td>
                     <td><span className={`chip ${e.estado}`}>{e.estado}</span></td>
                   </tr>
                 ))}
