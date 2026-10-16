@@ -56,6 +56,10 @@ Los archivos oficiales van en `data/raw/` (no se suben al repositorio). La inges
 
 Requisitos: Python 3.12+, Node 20+.
 
+**Opción rápida (Linux/macOS):** `./run.sh` instala dependencias, reconstruye la BD y levanta backend y frontend.
+
+**Paso a paso:**
+
 ```bash
 # 1. Variables de entorno
 cp .env.example .env          # completar los valores
