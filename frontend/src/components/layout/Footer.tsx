@@ -1,40 +1,20 @@
 import React from 'react'
-import { Terminal, ShieldCheck, Cpu, HardDrive } from 'lucide-react'
+import { Box, Cpu, ShieldCheck } from 'lucide-react'
+import { Brand } from './Brand'
 
-export const Footer: React.FC = () => {
-  return (
-    <footer className="relative z-10 w-full border-t border-white/10 bg-[#030712]/90 backdrop-blur-xl py-6 mt-16 text-slate-400 text-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-white tracking-widest bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              CAMPUSLANDS OPS
-            </span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-400">Hackatón "El campus bajo presión"</span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 text-slate-400 font-mono text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#00FF9D]" />
-              <span>Reglas: <strong className="text-slate-200">RN-01 · RN-02 · RN-03 · RN-04</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Cpu className="w-4 h-4 text-[#9D4EDD]" />
-              <span>IA: <strong className="text-slate-200">Triaje Semántico & NLP</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <HardDrive className="w-4 h-4 text-cyan-400" />
-              <span>3D: <strong className="text-slate-200">Three.js + R3F + Drei</strong></span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500">
-            <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Audit Latency: &lt; 15ms</span>
-          </div>
-        </div>
+export const Footer: React.FC = () => (
+  <footer className="relative z-10 mt-16 w-full border-t border-white/[0.06] bg-[#050816]/80">
+    <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 py-8 sm:px-6 md:flex-row lg:px-8">
+      <div className="flex flex-col items-center gap-2 md:items-start">
+        <Brand tamano="sm" subtitulo={false} />
+        <p className="text-xs text-slate-500">Hackatón “El campus bajo presión” · Torre Zenith</p>
       </div>
-    </footer>
-  )
-}
+      <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
+        <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Reglas RN-01 a RN-04</li>
+        <li className="flex items-center gap-1.5"><Cpu className="h-4 w-4 text-violet-400" /> Triaje asistido por IA</li>
+        <li className="flex items-center gap-1.5"><Box className="h-4 w-4 text-sky-300" /> Three.js · React Three Fiber</li>
+      </ul>
+      <p className="font-mono text-[11px] text-slate-600">© {new Date().getFullYear()} Campuslands</p>
+    </div>
+  </footer>
+)
