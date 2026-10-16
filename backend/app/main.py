@@ -6,12 +6,15 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlmodel import Session
 
 from app.ai.proveedor import ErrorProveedor
 from app.config import catalogos, settings
 from app.config import reglas as cfg
-from app.db import crear_tablas
-from app.rules.base import NoEncontradoError, ReglaNegocioError
+from app.api import nivel6
+from app.db import crear_tablas, engine
+from app.rules.base import NoEncontradoError, PermisoError, ReglaNegocioError
+from app.services.reservas import sembrar_salas
 
 log = logging.getLogger("campus-ops")
 
@@ -20,6 +23,8 @@ log = logging.getLogger("campus-ops")
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     crear_tablas()
+    with Session(engine) as session:
+        sembrar_salas(session)
     yield
 
 
@@ -44,6 +49,11 @@ async def _regla(request: Request, exc: ReglaNegocioError):
 @app.exception_handler(NoEncontradoError)
 async def _no_encontrado(request: Request, exc: NoEncontradoError):
     return JSONResponse(status_code=404, content={"codigo": "ERR-404", "mensaje": str(exc)})
+
+
+@app.exception_handler(PermisoError)
+async def _permiso(request: Request, exc: PermisoError):
+    return JSONResponse(status_code=403, content={"codigo": "ERR-403", "mensaje": str(exc)})
 
 
 @app.exception_handler(RequestValidationError)
@@ -102,5 +112,4 @@ def get_reglas():
 
 
 # Los routers de cada módulo se registran aquí:
-# from app.api import espacios, recursos, incidencias, datos
-# app.include_router(espacios.router)
+app.include_router(nivel6.router)
