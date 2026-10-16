@@ -4,6 +4,7 @@ No hace commit: se llama dentro de la transacción del servicio que hace el camb
 """
 from sqlmodel import Session, select
 
+from app.auth.contexto import actor_actual
 from app.models import Auditoria
 
 
@@ -17,6 +18,8 @@ def auditar(
     actor: str = "sistema",
     detalle: str | None = None,
 ) -> Auditoria:
+    if actor == "sistema":
+        actor = actor_actual.get() or "sistema"   # usuario que hizo la petición, si hay sesión
     registro = Auditoria(
         entidad=entidad,
         entidad_id=str(entidad_id),
