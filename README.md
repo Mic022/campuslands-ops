@@ -105,8 +105,10 @@ Todos los parámetros están en [`backend/app/config/reglas.py`](backend/app/con
 en cada llamada: un cambio ahí se aplica sin tocar el resto del código.
 
 **Ver cada error en vivo:** con la API corriendo, `cd backend && python -m scripts.demo_errores`
-dispara una petición por cada error de espacios y recursos (RN-01 a RN-07, 404, 409 y 422) y muestra
-su código, el mensaje de la API y por qué ocurre. Los límites se leen de `GET /api/reglas`: tras
+dispara una petición por cada error de sesión, espacios y recursos (AUTH-401/403, RN-01 a RN-07, 404,
+409 y 422) y muestra su código, el mensaje de la API y por qué ocurre. Inicia sesión con `ADMIN_CLAVE`
+de `.env` (o `--usuario`/`--clave`); con `USUARIO_CLAVE` también muestra los 403 de un usuario sin rol
+admin. Los límites se leen de `GET /api/reglas`: tras
 cambiar `reglas.py` basta con volver a correrlo. `--solo RN-06` filtra por código. Deja la BD como
 estaba (cancela sus reservas y devuelve sus préstamos); solo quedan los recursos de prueba `DEMO-ERR-*`.
 

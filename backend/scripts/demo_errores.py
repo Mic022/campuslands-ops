@@ -1,9 +1,13 @@
-"""Guion de la defensa: dispara cada error de espacios y recursos y explica por qué ocurre.
+"""Guion de la defensa: dispara cada error de sesión, espacios y recursos y explica por qué ocurre.
 
 Uso (desde backend/, con la API corriendo):
     python -m scripts.demo_errores                        # contra http://127.0.0.1:8000
     python -m scripts.demo_errores --url http://127.0.0.1:8000
     python -m scripts.demo_errores --solo RN-06           # solo los casos de un código
+
+Inicia sesión como admin con ADMIN_USUARIO / ADMIN_CLAVE de .env (o --usuario / --clave).
+Si además USUARIO_CLAVE está definida, entra como el primer usuario de USUARIOS_DEMO para
+mostrar los errores de permisos (AUTH-403).
 
 Por cada petición muestra el código que devolvió la API, su mensaje y el porqué de la
 regla. Los límites se leen de GET /api/reglas, así que tras cambiar config/reglas.py
@@ -28,15 +32,17 @@ SOLICITANTE_2 = "Demo Errores Dos"
 PREFIJO_RECURSO = "DEMO-ERR-"
 ESPACIO_DEMO = "Sala Demo Errores"
 
-# Pedir(metodo, ruta, cuerpo) -> (status, json). Se inyecta para poder probar el guion sin servidor.
+# Pedir(metodo, ruta, cuerpo) -> (status, json).
 Pedir = Callable[[str, str, dict | None], tuple[int, object]]
+# Transporte(metodo, ruta, cuerpo, cabeceras) -> (status, json). Se inyecta para probar el guion sin servidor.
+Transporte = Callable[[str, str, dict | None, dict], tuple[int, object]]
 
 
-def pedir_http(base: str) -> Pedir:
-    def pedir(metodo: str, ruta: str, cuerpo: dict | None = None) -> tuple[int, object]:
+def transporte_http(base: str) -> Transporte:
+    def enviar(metodo: str, ruta: str, cuerpo: dict | None, cabeceras: dict) -> tuple[int, object]:
         datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
         req = urllib.request.Request(
-            base.rstrip("/") + ruta, data=datos, method=metodo, headers={"Content-Type": "application/json"}
+            base.rstrip("/") + ruta, data=datos, method=metodo, headers={"Content-Type": "application/json", **cabeceras}
         )
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
@@ -44,7 +50,27 @@ def pedir_http(base: str) -> Pedir:
         except urllib.error.HTTPError as e:
             return e.code, _json(e.read())
 
-    return pedir
+    return enviar
+
+
+class Sesion:
+    """Hace peticiones con el token de quien inició sesión (o sin token, si nadie lo hizo)."""
+
+    def __init__(self, transporte: Transporte):
+        self.transporte = transporte
+        self.token: str | None = None
+        self.nombre: str | None = None
+
+    def __call__(self, metodo: str, ruta: str, cuerpo: dict | None = None) -> tuple[int, object]:
+        cabeceras = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        return self.transporte(metodo, ruta, cuerpo, cabeceras)
+
+    def iniciar(self, usuario: str, clave: str) -> bool:
+        status, resp = self("POST", "/api/auth/login", {"usuario": usuario, "clave": clave})
+        if status != 200:
+            return False
+        self.token, self.nombre = resp["token"], resp["usuario"]["nombre"]
+        return True
 
 
 def _json(crudo: bytes) -> object:
@@ -80,7 +106,9 @@ class FalloPreparacion(Exception):
 
 @dataclass
 class Demo:
-    pedir: Pedir
+    pedir: Pedir                    # sesión de admin: puede actuar a nombre de cualquier solicitante
+    anonimo: Pedir | None = None    # sin token, para AUTH-401
+    usuario: Sesion | None = None    # usuario sin rol admin, para AUTH-403
     solo: str | None = None
     salida: Callable[[str], None] = print
     casos: list[Caso] = field(default_factory=list)
@@ -97,11 +125,13 @@ class Demo:
     def deshacer_luego(self, que: str, accion: Callable[[], None]) -> None:
         self._deshacer.append((que, accion))
 
-    def probar(self, esperado: str, titulo: str, metodo: str, ruta: str, cuerpo: dict | None, porque: str) -> Caso | None:
+    def probar(
+        self, esperado: str, titulo: str, metodo: str, ruta: str, cuerpo: dict | None, porque: str, via: Pedir | None = None
+    ) -> Caso | None:
         if self.solo and not esperado.startswith(self.solo):
             return None
         caso = Caso(esperado, titulo, metodo, ruta, cuerpo, porque)
-        caso.status, caso.respuesta = self.pedir(metodo, ruta, cuerpo)
+        caso.status, caso.respuesta = (via or self.pedir)(metodo, ruta, cuerpo)
         self.casos.append(caso)
         self._imprimir(caso)
         return caso
@@ -130,6 +160,8 @@ class Demo:
         )
         try:
             self._limpiar_restos()
+            self.salida("\n================ SESIÓN Y PERMISOS ================")
+            self.errores_sesion()
             self.salida("\n================ ESPACIOS Y RESERVAS ================")
             self.errores_reservas()
             self.salida("\n================ RECURSOS Y PRÉSTAMOS ================")
@@ -162,6 +194,36 @@ class Demo:
         consulta = urlencode({"solicitante": SOLICITANTE, "estado": "activa"})
         for res in self.exigir("GET", f"/api/reservas?{consulta}"):
             self.exigir("POST", f"/api/reservas/{res['id']}/cancelar")
+
+    # ---------- Sesión: AUTH-401, AUTH-403 ----------
+
+    def errores_sesion(self) -> None:
+        if self.anonimo:
+            self.probar(
+                "AUTH-401", "Pedir datos sin iniciar sesión", "GET", "/api/espacios", None,
+                "Salvo health, login, catálogos y reglas, toda ruta exige un token (config/permisos.py). "
+                "Sin él la API no revela nada y la UI vuelve a la pantalla de inicio de sesión.",
+                via=self.anonimo,
+            )
+        if not self.usuario:
+            self.salida("(Sin USUARIO_CLAVE en .env: se omiten los casos AUTH-403 de un usuario sin rol admin.)")
+            return
+        nombre = self.usuario.nombre
+        self.probar(
+            "AUTH-403", "Un usuario cambia el estado de un recurso", "PATCH", f"/api/recursos/{PREFIJO_RECURSO}01/estado",
+            {"estado": "mantenimiento"},
+            f"'{nombre}' tiene rol usuario. Cambiar estados, editar el inventario y registrar devoluciones es solo "
+            "para administradores (SOLO_ADMIN en config/permisos.py); se rechaza antes de tocar el recurso.",
+            via=self.usuario,
+        )
+        self.probar(
+            "AUTH-403", "Un usuario reserva a nombre de otra persona", "POST", "/api/reservas",
+            {"espacio_id": "cualquiera", "solicitante": SOLICITANTE, "inicio": "2030-01-01T08:00",
+             "fin": "2030-01-01T09:00", "asistentes": 1},
+            f"'{nombre}' solo puede reservar y pedir préstamos a su propio nombre; si no, cualquiera podría "
+            "gastar el cupo de RN-06 de otra persona. El admin sí puede registrar por otros.",
+            via=self.usuario,
+        )
 
     # ---------- Espacios: RN-01, RN-02, RN-04, RN-05 ----------
 
@@ -399,11 +461,23 @@ def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default="http://127.0.0.1:8000", help="URL base de la API")
-    parser.add_argument("--solo", help="mostrar solo los casos cuyo código empiece así (RN-01, RN-0, ERR)")
+    parser.add_argument("--solo", help="mostrar solo los casos cuyo código empiece así (RN-01, RN-0, AUTH, ERR)")
+    parser.add_argument("--usuario", help="admin con el que iniciar sesión (por defecto ADMIN_USUARIO de .env)")
+    parser.add_argument("--clave", help="clave del admin (por defecto ADMIN_CLAVE de .env)")
     args = parser.parse_args()
 
-    demo = Demo(pedir_http(args.url), solo=args.solo)
+    from app.config import settings  # carga .env
+
+    transporte = transporte_http(args.url)
+    admin, usuario = Sesion(transporte), Sesion(transporte)
     try:
+        if not admin.iniciar(args.usuario or settings.ADMIN_USUARIO, args.clave or settings.ADMIN_CLAVE):
+            print("✗ No se pudo iniciar sesión como admin. Define ADMIN_CLAVE en .env (y reinicia la API) "
+                  "o pasa --usuario y --clave. Si la clave se generó sola, la imprimió reset_db o la API al arrancar.")
+            sys.exit(2)
+        con_usuario = bool(settings.USUARIOS_DEMO and settings.USUARIO_CLAVE) and usuario.iniciar(
+            settings.USUARIOS_DEMO[0], settings.USUARIO_CLAVE)
+        demo = Demo(admin, anonimo=Sesion(transporte), usuario=usuario if con_usuario else None, solo=args.solo)
         todo_bien = demo.ejecutar()
     except urllib.error.URLError as e:
         print(f"✗ No se pudo conectar con {args.url} ({e.reason}). Arranca la API: uvicorn app.main:app --reload")
