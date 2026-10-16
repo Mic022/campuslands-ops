@@ -3,6 +3,8 @@
 Constructor de prompts para el triaje de incidencias.
 Blindado contra prompt injection: el texto del usuario es solo datos, nunca instrucciones.
 """
+import re
+
 from app.config.catalogos import Categoria, Prioridad, Area, valores
 
 
@@ -18,7 +20,8 @@ def construir_prompt_triaje(descripcion_usuario: str, contexto_espacio: str = ""
         Lista de mensajes en formato OpenAI (system + user).
     """
     # 1. Limpieza básica anti-inyección: quitar etiquetas que podrían confundir al modelo
-    texto_limpio = descripcion_usuario.replace("<incidencia>", "").replace("</incidencia>", "")
+    # (también variantes con mayúsculas o espacios, p. ej. "</ Incidencia >")
+    texto_limpio = re.sub(r"<\s*/?\s*incidencia\s*>", "", descripcion_usuario, flags=re.IGNORECASE).strip()
     
     # 2. Extraer valores permitidos directamente de los enums (fuente única de verdad)
     # Si el jurado pide agregar una categoría en vivo, el prompt se actualiza automáticamente
