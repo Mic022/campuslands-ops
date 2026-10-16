@@ -98,6 +98,7 @@ def get_reglas():
         "max_prestamos_activos": cfg.MAX_PRESTAMOS_ACTIVOS,
         "prioridades_bloqueantes": sorted(cfg.PRIORIDADES_BLOQUEANTES),
         "umbral_confianza_ia": cfg.UMBRAL_CONFIANZA_IA,
+        "max_largo_descripcion": cfg.MAX_LARGO_DESCRIPCION,
     }
 
 
