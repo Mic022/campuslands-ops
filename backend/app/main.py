@@ -2,16 +2,17 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.ai.proveedor import ErrorProveedor
+from app.auth.dependencias import autorizar
 from app.config import catalogos, settings
 from app.config import reglas as cfg
-from app.db import crear_tablas
-from app.rules.base import NoEncontradoError, ReglaNegocioError
+from app.db import crear_tablas, engine
+from app.rules.base import NoAutenticadoError, NoEncontradoError, PermisoError, ReglaNegocioError
 
 log = logging.getLogger("campus-ops")
 
@@ -19,11 +20,23 @@ log = logging.getLogger("campus-ops")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    from sqlmodel import Session
+
+    from app.services.auth import sembrar_usuarios
+
     crear_tablas()
+    with Session(engine) as db:
+        for usuario, clave in sembrar_usuarios(db).items():
+            log.warning("Usuario '%s' creado con clave generada: %s (define las claves en .env)", usuario, clave)
     yield
 
 
-app = FastAPI(title="Campus Ops — Sistema Central de Gestión Operativa", lifespan=lifespan)
+# autorizar aplica config/permisos.py a todas las rutas (públicas, cualquier usuario o solo admin).
+app = FastAPI(
+    title="Campus Ops — Sistema Central de Gestión Operativa",
+    lifespan=lifespan,
+    dependencies=[Depends(autorizar)],
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +52,16 @@ app.add_middleware(
 async def _regla(request: Request, exc: ReglaNegocioError):
     r = exc.resultado
     return JSONResponse(status_code=409, content={"codigo": r.codigo, "mensaje": r.mensaje})
+
+
+@app.exception_handler(NoAutenticadoError)
+async def _no_autenticado(request: Request, exc: NoAutenticadoError):
+    return JSONResponse(status_code=401, content={"codigo": "AUTH-401", "mensaje": str(exc)})
+
+
+@app.exception_handler(PermisoError)
+async def _sin_permiso(request: Request, exc: PermisoError):
+    return JSONResponse(status_code=403, content={"codigo": "AUTH-403", "mensaje": str(exc)})
 
 
 @app.exception_handler(NoEncontradoError)
@@ -103,8 +126,9 @@ def get_reglas():
 
 
 # Los routers de cada módulo se registran aquí (una línea por módulo):
-from app.api import datos, espacios, recursos  # noqa: E402
+from app.api import auth, datos, espacios, recursos  # noqa: E402
 
+app.include_router(auth.router)
 app.include_router(datos.router)
 app.include_router(espacios.router)
 app.include_router(recursos.router)

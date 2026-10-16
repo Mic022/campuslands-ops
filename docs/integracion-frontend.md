@@ -171,6 +171,21 @@ IDs de espacio y recurso son **texto**.
 
 ---
 
+## 6.1 Login y roles (nuevo)
+
+```
+POST /api/auth/login   {usuario, clave}
+  → 200 {token, tipo: "bearer", expira_en_horas, usuario: {usuario, nombre, rol}}
+  → 401 {codigo: "AUTH-401", mensaje: "Usuario o clave incorrectos."}
+GET  /api/auth/yo      → {usuario, nombre, rol}
+```
+- Todas las rutas salvo `/api/health`, `/api/catalogos`, `/api/reglas` y el login exigen `Authorization: Bearer <token>`.
+- **401** (sesión vencida o inválida) → borrar la sesión y volver al login. **403** → mostrar el mensaje (no tiene permiso).
+- Rol `usuario`: el `solicitante` de reservas y préstamos debe ser su `nombre` → prellenarlo con `usuario.nombre` y no dejarlo editable.
+- Ocultar a `usuario` los botones de admin: crear/editar espacios y recursos, cambiar estado de recurso, devolución, cambiar estado de incidencia, pestañas de Datos y Auditoría. (El backend igual lo bloquea con 403.)
+- Guardar el token en `sessionStorage` (envuelto en try/catch), nunca en el código.
+- Referencia: `frontend/src/api.js` y `frontend/src/components/Login.jsx` en `develop`.
+
 ## 7. Checklist de requisitos después de integrar
 
 - [ ] Los 12 espacios de la UI son los oficiales (nada de Turing/Lovelace)
@@ -183,6 +198,7 @@ IDs de espacio y recurso son **texto**.
 - [ ] Pestaña de Datos con el reporte de carga (`GET /api/datos/reporte`)
 - [ ] Historial de un recurso (`GET /api/auditoria?entidad=recurso&id=...`)
 - [ ] Cambiar `MAX_HORAS_RESERVA` en `reglas.py` → la UI lo refleja sin tocar el frontend
+- [ ] Login con `admin` y con `ana`: el usuario no ve acciones de admin y recibe 403 si las intenta
 - [ ] `npm run build` sin errores y versiones fijadas en `package.json`
 - [ ] Nada de `demoData`, `rulesEngine`, `triajeConIA`, modo demo ni métricas inventadas
 
