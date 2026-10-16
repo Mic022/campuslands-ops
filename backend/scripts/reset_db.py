@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.config import settings
 from app.db import crear_tablas, engine
-from app.services.reservas import sembrar_salas
+from app.ingest import pipeline
 
 
 def main() -> None:
@@ -20,10 +20,19 @@ def main() -> None:
             print(f"BD eliminada: {ruta}")
     crear_tablas()
     print("Tablas creadas.")
-    with Session(engine) as session:
-        sembrar_salas(session)
-    print("Salas del Nivel 6 de Torre Zenith cargadas (10).")
-    # Pendiente: ejecutar la ingesta del dataset oficial y generar el reporte de cuarentena.
+
+    with Session(engine) as db:
+        reporte = pipeline.ejecutar(db)
+    ruta_reporte = reporte.guardar(settings.DATA_REPORTS)
+
+    for archivo in reporte.archivos:
+        if "error" in archivo:
+            print(f"  ! {archivo['archivo']}: {archivo['error']}")
+        elif "aviso" in archivo:
+            print(f"  - {archivo['archivo']}: {archivo['aviso']}")
+    for r in reporte.a_dict()["resumen"]:
+        print(f"  {r['entidad']}: {r['leidos']} leídos, {r['cargados']} cargados, {r['en_cuarentena']} en cuarentena")
+    print(f"Reporte: {ruta_reporte}")
 
 
 if __name__ == "__main__":

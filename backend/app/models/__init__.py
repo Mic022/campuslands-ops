@@ -1,35 +1,105 @@
-"""Tablas SQLModel. Importar aquí cada modelo para que crear_tablas() lo registre."""
-from datetime import date, datetime, time
+"""Tablas de la base de datos.
+
+Los estados se guardan como texto con los valores de config/catalogos.py;
+los esquemas de entrada validan que estén dentro del catálogo. Así, agregar
+un valor en la modificación en vivo no exige migrar la BD.
+"""
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel
 
-from app.config.catalogos import EstadoEspacio, EstadoReserva
+
+def ahora() -> datetime:
+    return datetime.now().replace(microsecond=0)
 
 
-class Sala(SQLModel, table=True):
-    id: str = Field(primary_key=True, max_length=40)
-    nombre: str
-    tipo: str
-    descripcion: str
-    capacidad: int
-    equipamiento: str = "[]"  # lista JSON
-    color: str
-    estado: EstadoEspacio = EstadoEspacio.disponible
-    motivo_bloqueo: str | None = None
-    actualizada_en: datetime = Field(default_factory=datetime.now)
+class Espacio(SQLModel, table=True):
+    __tablename__ = "espacios"
+
+    id: str = Field(primary_key=True)                  # slug del nombre: "auditorio", "cosmos"
+    nombre: str = Field(unique=True)
+    tipo: str                                          # TipoEspacio
+    aforo: int
+    estado: str = "disponible"                         # EstadoEspacio
+    ubicacion: str | None = None
+
+
+class Recurso(SQLModel, table=True):
+    __tablename__ = "recursos"
+
+    id: str = Field(primary_key=True)
+    tipo: str                                          # portátil, videobeam, ...
+    nombre: str | None = None
+    serial: str | None = Field(default=None, unique=True)
+    estado: str = "disponible"                         # EstadoRecurso
+    espacio_id: str | None = Field(default=None, foreign_key="espacios.id")
 
 
 class Reserva(SQLModel, table=True):
+    __tablename__ = "reservas"
+
     id: int | None = Field(default=None, primary_key=True)
-    sala_id: str = Field(foreign_key="sala.id", index=True)
+    espacio_id: str = Field(foreign_key="espacios.id", index=True)
     solicitante: str
-    fecha: date = Field(index=True)
-    hora_inicio: time
-    hora_fin: time
+    inicio: datetime
+    fin: datetime
     asistentes: int
-    motivo: str
-    estado: EstadoReserva = EstadoReserva.activa
-    # Solo se guarda el hash; el token en claro se entrega una vez al crear la reserva.
-    token_hash: str
-    creada_en: datetime = Field(default_factory=datetime.now)
-    cancelada_en: datetime | None = None
+    estado: str = "activa"                             # EstadoReserva
+    creada_en: datetime = Field(default_factory=ahora)
+
+
+class Prestamo(SQLModel, table=True):
+    __tablename__ = "prestamos"
+
+    id: int | None = Field(default=None, primary_key=True)
+    recurso_id: str = Field(foreign_key="recursos.id", index=True)
+    solicitante: str = Field(index=True)
+    salida: datetime
+    devolucion_esperada: datetime
+    devolucion_real: datetime | None = None
+    estado: str = "activo"                             # EstadoPrestamo
+
+
+class Incidencia(SQLModel, table=True):
+    __tablename__ = "incidencias"
+
+    id: int | None = Field(default=None, primary_key=True)
+    titulo: str
+    descripcion: str
+    categoria: str | None = None                       # Categoria (None mientras está pendiente de triaje)
+    prioridad: str | None = None                       # Prioridad
+    area_responsable: str | None = None                # Area
+    estado: str = "abierta"                            # EstadoIncidencia
+    espacio_id: str | None = Field(default=None, foreign_key="espacios.id", index=True)
+    recurso_id: str | None = Field(default=None, foreign_key="recursos.id", index=True)
+    origen_triaje: str = "pendiente"                   # OrigenTriaje
+    confianza_ia: float | None = None
+    justificacion_ia: str | None = None
+    creada_en: datetime = Field(default_factory=ahora)
+    resuelta_en: datetime | None = None
+
+
+class Auditoria(SQLModel, table=True):
+    __tablename__ = "auditoria"
+
+    id: int | None = Field(default=None, primary_key=True)
+    entidad: str = Field(index=True)                   # "espacio", "recurso", "reserva", ...
+    entidad_id: str = Field(index=True)
+    accion: str                                        # "crear", "cambiar_estado", "ingesta", ...
+    estado_anterior: str | None = None
+    estado_nuevo: str | None = None
+    actor: str = "sistema"
+    detalle: str | None = None
+    fecha: datetime = Field(default_factory=ahora)
+
+
+class LlamadaIA(SQLModel, table=True):
+    __tablename__ = "llamadas_ia"
+
+    id: int | None = Field(default=None, primary_key=True)
+    tipo: str                                          # "triaje", ...
+    modelo: str | None = None
+    latencia_ms: int | None = None
+    valida: bool
+    error: str | None = None
+    fecha: datetime = Field(default_factory=ahora)

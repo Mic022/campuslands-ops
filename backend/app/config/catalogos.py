@@ -30,13 +30,6 @@ class EstadoReserva(str, Enum):
     finalizada = "finalizada"
 
 
-class Ocupacion(str, Enum):
-    """Estado de una sala en un instante consultado (calculado, no almacenado)."""
-    disponible = "disponible"
-    reservada = "reservada"
-    mantenimiento = "mantenimiento"
-
-
 class EstadoPrestamo(str, Enum):
     activo = "activo"
     devuelto = "devuelto"
@@ -100,7 +93,6 @@ def como_dict() -> dict:
         "tipo_espacio": valores(TipoEspacio),
         "estado_recurso": valores(EstadoRecurso),
         "estado_reserva": valores(EstadoReserva),
-        "ocupacion": valores(Ocupacion),
         "estado_prestamo": valores(EstadoPrestamo),
         "estado_incidencia": valores(EstadoIncidencia),
         "categoria": valores(Categoria),
