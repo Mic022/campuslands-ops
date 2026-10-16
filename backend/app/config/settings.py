@@ -10,6 +10,10 @@ load_dotenv(RAIZ_REPO / ".env")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./campus.db")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "http://localhost:5173")
 
+# Token de operador: habilita mantenimiento, historial completo y cancelar cualquier reserva.
+# Vacío = funciones de administración deshabilitadas.
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
+
 IA_PROVEEDOR = os.getenv("IA_PROVEEDOR", "").strip().lower()
 IA_MODELO = os.getenv("IA_MODELO", "")
 IA_API_KEY = os.getenv("IA_API_KEY", "")
