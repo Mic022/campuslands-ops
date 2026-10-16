@@ -50,8 +50,8 @@ def test_nombre_vacio_va_a_cuarentena(db):
 
 
 def test_columnas_alternativas_y_estado_con_variantes(db):
-    cargar(db, [{"Espacio": "Skilab", "Aforo": " 20 ", "Estado": "MANTENIMIENTO"}])
-    assert db.get(Espacio, "skilab").estado == "mantenimiento"
+    cargar(db, [{"Espacio": "Skylab", "Aforo": " 20 ", "Estado": "MANTENIMIENTO"}])
+    assert db.get(Espacio, "skylab").estado == "mantenimiento"
 
 
 def test_cada_carga_queda_auditada(db):
