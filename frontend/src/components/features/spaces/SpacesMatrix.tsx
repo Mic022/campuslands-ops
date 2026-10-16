@@ -5,15 +5,15 @@ import { Button } from '../../ui/Button'
 import { 
   Building2, 
   Search, 
-  Filter, 
   Users, 
-  Layers, 
   Calendar, 
   Clock, 
   AlertTriangle, 
   CheckCircle2, 
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  Zap,
+  Box
 } from 'lucide-react'
 
 interface SpacesMatrixProps {
@@ -58,55 +58,55 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Tarjetas de Métricas Rápidas */}
+      {/* Tarjetas Holográficas de Métricas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="glass-card p-4 rounded-xl border border-slate-800">
+        <div className="holo-card p-4.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Espacios Totales</span>
+            <span className="text-xs text-slate-400 font-mono uppercase tracking-wider">Espacios Totales</span>
             <Building2 className="w-4 h-4 text-cyan-400" />
           </div>
-          <p className="text-2xl font-bold font-mono text-white mt-1">{espacios.length}</p>
-          <span className="text-[11px] text-slate-500 font-mono">Capacidad: {totalCapacidad} personas</span>
+          <p className="text-3xl font-black font-mono text-white mt-1.5">{espacios.length}</p>
+          <span className="text-[11px] text-slate-400 font-mono">Aforo Global: {totalCapacidad} pax</span>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-slate-800">
+        <div className="holo-card p-4.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-emerald-400 font-medium">Disponibles</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-emerald-400 font-mono uppercase tracking-wider">Operativos</span>
+            <CheckCircle2 className="w-4 h-4 text-[#00FF9D]" />
           </div>
-          <p className="text-2xl font-bold font-mono text-emerald-300 mt-1">{disponiblesCount}</p>
-          <span className="text-[11px] text-slate-500">Listos para reserva inmediata</span>
+          <p className="text-3xl font-black font-mono text-[#00FF9D] mt-1.5 glow-mint">{disponiblesCount}</p>
+          <span className="text-[11px] text-slate-400 font-mono">Listos para reserva</span>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-slate-800">
+        <div className="holo-card p-4.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-amber-400 font-medium">Mantenimiento</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-amber-400 font-mono uppercase tracking-wider">En Mantenimiento</span>
+            <AlertTriangle className="w-4 h-4 text-[#FFB703]" />
           </div>
-          <p className="text-2xl font-bold font-mono text-amber-300 mt-1">{mantenimientoCount}</p>
-          <span className="text-[11px] text-slate-500">Mantenimiento programado</span>
+          <p className="text-3xl font-black font-mono text-[#FFB703] mt-1.5">{mantenimientoCount}</p>
+          <span className="text-[11px] text-slate-400 font-mono">Mantenimiento preventivo</span>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-slate-800">
+        <div className="holo-card p-4.5 border-rose-500/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-rose-400 font-medium">Inhabilitados (RN-04)</span>
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
+            <span className="text-xs text-rose-400 font-mono uppercase tracking-wider">RN-04 Inhabilitados</span>
+            <ShieldAlert className="w-4 h-4 text-[#FF2A55]" />
           </div>
-          <p className="text-2xl font-bold font-mono text-rose-400 mt-1">{inhabilitadosCount}</p>
-          <span className="text-[11px] text-rose-400/80">Bloqueados por incidencia</span>
+          <p className="text-3xl font-black font-mono text-[#FF2A55] mt-1.5 glow-crimson">{inhabilitadosCount}</p>
+          <span className="text-[11px] text-rose-300/80 font-mono">Bloqueados por incidencia</span>
         </div>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="glass-panel p-4 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div className="holo-panel p-4 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-3 shadow-xl">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, código o equipamiento..."
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            placeholder="Buscar aula, código (ESP-01) o equipamiento..."
+            className="w-full pl-10 pr-4 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
           />
         </div>
 
@@ -115,29 +115,29 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
           <select
             value={filtroTipo}
             onChange={e => setFiltroTipo(e.target.value as any)}
-            className="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-black/40 border border-white/10 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 cursor-pointer"
           >
             <option value="todos">Todos los Tipos</option>
-            <option value="aula">Solo Aulas</option>
-            <option value="cubiculo">Solo Cubículos</option>
+            <option value="aula">Aulas & Labs</option>
+            <option value="cubiculo">Cubículos</option>
           </select>
 
           {/* Piso */}
           <select
             value={filtroPiso}
             onChange={e => setFiltroPiso(e.target.value === 'todos' ? 'todos' : Number(e.target.value) as any)}
-            className="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-black/40 border border-white/10 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 cursor-pointer"
           >
             <option value="todos">Todos los Pisos</option>
-            <option value="1">Piso 1</option>
-            <option value="2">Piso 2</option>
+            <option value="1">Piso 01</option>
+            <option value="2">Piso 02</option>
           </select>
 
           {/* Estado */}
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value as any)}
-            className="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-black/40 border border-white/10 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 cursor-pointer"
           >
             <option value="todos">Todos los Estados</option>
             <option value="disponible">Disponibles</option>
@@ -147,7 +147,7 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
         </div>
       </div>
 
-      {/* Grid de Espacios */}
+      {/* Cuadrícula de Salas con Tarjetas Holográficas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {espaciosFiltrados.map(esp => {
           const incActiva = esp.incidenciaActivaId
@@ -160,15 +160,15 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
           return (
             <div
               key={esp.id}
-              className="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between"
+              className="holo-card p-6 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-mono text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-cyan-500/20">
-                      {esp.id} · Piso {esp.piso}
+                    <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-lg">
+                      {esp.id} · PISO {esp.piso}
                     </span>
-                    <h3 className="text-base font-bold text-white mt-1.5 leading-snug">
+                    <h3 className="text-lg font-black text-white mt-2 leading-snug tracking-tight">
                       {esp.nombre}
                     </h3>
                   </div>
@@ -186,31 +186,33 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
                 </div>
 
                 {/* Métricas de Aforo */}
-                <div className="mt-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs">
+                <div className="mt-4 p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-cyan-400" />
-                    <span className="text-slate-300">Aforo Operativo:</span>
+                    <span className="text-slate-300 font-medium">Aforo Operativo:</span>
                   </div>
                   <div className="font-mono text-right">
-                    <span className="text-white font-bold">{aforoMaximo}</span>
-                    <span className="text-slate-500 text-[10px]"> / {esp.capacidad} pax base</span>
+                    <span className="text-white font-bold text-sm">{aforoMaximo}</span>
+                    <span className="text-slate-400 text-[11px]"> / {esp.capacidad} pax base</span>
                   </div>
                 </div>
 
-                {/* Equipamiento */}
-                <div className="mt-3">
-                  <span className="text-[11px] text-slate-400 block mb-1 font-medium">Equipamiento clave:</span>
-                  <div className="flex flex-wrap gap-1">
+                {/* Equipamiento Clave */}
+                <div className="mt-3.5">
+                  <span className="text-[11px] text-slate-400 block mb-1.5 font-medium font-mono uppercase">
+                    Equipamiento:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
                     {esp.equipamiento.slice(0, 3).map((eq, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-0.5 rounded"
+                        className="text-[11px] bg-white/5 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-lg"
                       >
                         {eq}
                       </span>
                     ))}
                     {esp.equipamiento.length > 3 && (
-                      <span className="text-[10px] text-slate-500 py-0.5">
+                      <span className="text-[11px] text-slate-500 py-0.5 px-1">
                         +{esp.equipamiento.length - 3} más
                       </span>
                     )}
@@ -219,13 +221,13 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
 
                 {/* Incidencia Bloqueante RN-04 */}
                 {incActiva && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/50 flex items-start gap-2 text-xs text-rose-200">
+                  <div className="mt-4 p-3 rounded-xl bg-rose-950/70 border border-rose-500/50 flex items-start gap-2.5 text-xs text-rose-200">
                     <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="block text-[11px] font-bold text-rose-300">
+                      <strong className="block text-[11px] font-bold text-rose-300 uppercase">
                         RN-04: Bloqueado por {incActiva.codigo}
                       </strong>
-                      <p className="text-[10px] text-rose-200/90 leading-tight mt-0.5">
+                      <p className="text-[11px] text-rose-200/90 leading-tight mt-0.5">
                         {incActiva.titulo}
                       </p>
                     </div>
@@ -234,8 +236,8 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
 
                 {/* Reservas Activas */}
                 {reservasEspacio.length > 0 && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs">
-                    <div className="flex items-center gap-1.5 text-blue-300 font-semibold mb-1">
+                  <div className="mt-4 p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs">
+                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold mb-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span>{reservasEspacio.length} Reserva(s) Activa(s)</span>
                     </div>
@@ -248,16 +250,15 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
                 )}
               </div>
 
-              {/* Acciones */}
-              <div className="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
+              {/* Botones de Acción */}
+              <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between gap-2">
+                <button
                   onClick={() => onFocusIn3D(esp)}
-                  className="text-xs text-slate-400 hover:text-cyan-400"
+                  className="text-xs font-mono text-cyan-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  Ubicar en 3D
-                </Button>
+                  <Box className="w-3.5 h-3.5" />
+                  <span>Enfocar en 3D</span>
+                </button>
 
                 <Button
                   variant={esp.estado === 'disponible' ? 'cyan' : 'outline'}
