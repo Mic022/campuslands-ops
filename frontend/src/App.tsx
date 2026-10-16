@@ -12,9 +12,9 @@ import {
 import { apiClient } from './services/apiClient'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
+import { StarfieldBackground } from './components/ui/StarfieldBackground'
 import { ToastContainer, ToastMessage } from './components/ui/Toast'
-import { CampusScene3D } from './scenes/CampusScene3D'
-import { SceneFallback2D } from './scenes/SceneFallback2D'
+import { TorreZenithNivel6 } from './components/features/torre-zenith/TorreZenithNivel6'
 import { SpacesMatrix } from './components/features/spaces/SpacesMatrix'
 import { SpaceBookingModal } from './components/features/spaces/SpaceBookingModal'
 import { ResourceInventory } from './components/features/resources/ResourceInventory'
@@ -29,7 +29,10 @@ import {
   Activity, 
   Sparkles, 
   CheckCircle2, 
-  ArrowUpRight 
+  Radio,
+  Cpu,
+  Zap,
+  Gauge
 } from 'lucide-react'
 
 export default function App() {
@@ -174,7 +177,7 @@ export default function App() {
       await cargarTodo()
       addToast(
         datos.prioridad === 'critica' ? 'advertencia' : 'exito',
-        `Incidencia [${nueva.codigo}] registrada. Espacio bloqueado preventivamente si aplica (RN-04).`,
+        `Incidencia [${nueva.codigo}] registrada. Espacio bloqueado preventivamente por regla integradora (RN-04).`,
         'RN-04-TRIAGE'
       )
     } catch (err: any) {
@@ -187,7 +190,7 @@ export default function App() {
     try {
       const res = await apiClient.resolverIncidencia(incidenciaId)
       await cargarTodo()
-      addToast('exito', `Incidencia [${res.codigo}] marcada como resuelta. Espacio reactivado si no hay otros bloqueos.`, 'RN-04-RESTORE')
+      addToast('exito', `Incidencia [${res.codigo}] marcada como resuelta. Espacio reactivado inmediatamente.`, 'RN-04-RESTORE')
     } catch (err: any) {
       addToast('error', err.message)
     }
@@ -196,23 +199,31 @@ export default function App() {
   const handleUpdateConfig = async (nueva: Partial<ReglasConfig>) => {
     const actualizada = await apiClient.updateReglas(nueva)
     setConfig(actualizada)
-    addToast('info', 'Parámetros de negocio actualizados en tiempo real.', 'CONFIG-APPLIED')
+    addToast('info', 'Parámetros de negocio actualizados en caliente.', 'CONFIG-APPLIED')
   }
 
   const handleToggleDemoMode = () => {
     const nuevoModo = !isDemoMode
     setIsDemoMode(nuevoModo)
     apiClient.setModoDemo(nuevoModo)
-    addToast('info', nuevoModo ? 'Cambiado a Modo Demostración Offline.' : 'Intentando conectar con Backend FastAPI (/api)...')
+    addToast('info', nuevoModo ? 'Cambiado a Modo Demostración Offline.' : 'Sincronizando con Backend FastAPI (/api)...')
   }
 
   const incidenciasCriticasCount = incidencias.filter(
     i => i.prioridad === 'critica' && i.estado !== 'resuelta'
   ).length
 
+  const espaciosDisponibles = espacios.filter(e => e.estado === 'disponible').length
+  const porcentajeDisponibilidad = espacios.length > 0 
+    ? Math.round((espaciosDisponibles / espacios.length) * 100) 
+    : 100
+
   return (
-    <div className="min-h-screen flex flex-col tech-grid-bg text-slate-100 selection:bg-cyan-500 selection:text-slate-950">
-      {/* Navbar Superior */}
+    <div className="relative min-h-screen flex flex-col cosmic-void-bg text-slate-100 selection:bg-cyan-400 selection:text-black">
+      {/* Cielo estrellado con cometas fugaces */}
+      <StarfieldBackground />
+
+      {/* Navbar Superior Flotante */}
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
@@ -226,96 +237,114 @@ export default function App() {
       />
 
       {/* Contenedor Principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Hero Section & KPIs en Vivo */}
-        <section className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden bg-gradient-to-r from-slate-950 via-[#0C1222] to-slate-950">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* HUD Holográfico de Telemetría Superior */}
+        <section className="holo-panel rounded-3xl p-6 sm:p-7 border border-white/10 shadow-2xl relative overflow-hidden bg-gradient-to-r from-[#050814]/90 via-[#0A1128]/85 to-[#050814]/90 backdrop-blur-2xl">
+          {/* Brillos ambientales */}
+          <div className="absolute -top-24 -left-24 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-3">
-                <Activity className="w-3.5 h-3.5 animate-pulse" />
-                <span>Monitoreo Operativo Centralizado · Campuslands Hub</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/70 border border-cyan-400/40 text-cyan-300 text-xs font-mono mb-3">
+                <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>TELEMETRÍA EN VIVO · HUB CAMPUSLANDS</span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                Gestión Operativa de Espacios, Hardware e <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">Incidencias con IA</span>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-50 leading-tight">
+                Control Operativo <span className="titulo-aurora">Holográfico & Triaje IA</span>
               </h1>
-              <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-                Control unificado contra la fricción diaria del campus: semáforo de aforo 3D, trazabilidad estricta de préstamos, y triaje inteligente de incidentes con reglas de negocio activas.
+              <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                Plataforma unificada para resolver la fricción del campus: semáforo de aforo 3D, máquina de estados de hardware y enrutamiento inteligente de solicitudes.
               </p>
             </div>
 
-            {/* Micro-Dashboard de KPIs */}
-            <div className="w-full lg:w-auto grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-medium">Aulas & Cubículos</span>
-                <p className="text-xl font-bold font-mono text-cyan-400 mt-0.5">
-                  {espacios.filter(e => e.estado === 'disponible').length} / {espacios.length}
-                </p>
-                <span className="text-[10px] text-emerald-400 font-mono">Disponibles ahora</span>
+            {/* Cuadrícula de Indicadores HUD */}
+            <div className="w-full lg:w-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Disponibilidad de Aulas */}
+              <div className="holo-card p-3.5 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Salas Libres</span>
+                  <Building2 className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="mt-2">
+                  <p className="text-2xl font-mono font-black text-white">
+                    {espaciosDisponibles}<span className="text-xs font-normal text-slate-400">/{espacios.length}</span>
+                  </p>
+                  <div className="w-full bg-white/10 h-1 rounded-full mt-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${porcentajeDisponibilidad}%` }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-medium">Hardware Prestado</span>
-                <p className="text-xl font-bold font-mono text-purple-400 mt-0.5">
-                  {prestamos.filter(p => p.estado === 'activo').length}
-                </p>
-                <span className="text-[10px] text-slate-400 font-mono">Equipos activos</span>
+              {/* Hardware Prestado */}
+              <div className="holo-card p-3.5 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">En Custodia</span>
+                  <Laptop className="w-4 h-4 text-purple-400" />
+                </div>
+                <div className="mt-2">
+                  <p className="text-2xl font-mono font-black text-purple-300">
+                    {prestamos.filter(p => p.estado === 'activo').length}
+                  </p>
+                  <span className="text-[10px] text-slate-400 font-mono">Límite: {config.max_prestamos_activos}/usr</span>
+                </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 col-span-2 sm:col-span-1">
-                <span className="text-[11px] text-slate-400 font-medium">Incidencias Críticas</span>
-                <p className="text-xl font-bold font-mono text-rose-400 mt-0.5">
-                  {incidenciasCriticasCount}
-                </p>
-                <span className="text-[10px] text-rose-400/80 font-mono">
-                  {incidenciasCriticasCount > 0 ? 'Espacios bloqueados' : 'Operación normal'}
-                </span>
+              {/* Incidencias Críticas (RN-04) */}
+              <div className="holo-card p-3.5 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400">RN-04 Bloqueo</span>
+                  <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse" />
+                </div>
+                <div className="mt-2">
+                  <p className="text-2xl font-mono font-black text-[#FF2A55]">
+                    {incidenciasCriticasCount}
+                  </p>
+                  <span className="text-[10px] font-mono text-rose-300">
+                    {incidenciasCriticasCount > 0 ? 'Espacio bloqueado' : 'Sin alertas'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Motor de Reglas Activo */}
+              <div className="holo-card p-3.5 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Reglas Dominio</span>
+                  <Cpu className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="mt-2">
+                  <p className="text-xl font-mono font-black text-emerald-400">
+                    RN 1·2·3·4
+                  </p>
+                  <span className="text-[10px] font-mono text-emerald-300">Validador Activo</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* Contenido Dinámico de la Pestaña Activa */}
-        <section>
+        <section className="space-y-6">
           {activeTab === '3d-twin' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between px-1">
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-cyan-400" />
-                    <span>Gemelo Digital 3D del Campus</span>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-sky-300" />
+                    <span className="titulo-aurora">Torre Zenith · Nivel 6 — Reserva de salas</span>
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Interactúa con la maqueta tridimensional: rota, haz zoom e inspecciona las aulas en tiempo real.
+                  <p className="text-xs text-slate-400 font-medium">
+                    Recorre el plano en 3D, selecciona cualquiera de las diez salas y resérvala. Las reservas se guardan en el backend.
                   </p>
                 </div>
               </div>
 
-              {is3DMode ? (
-                <CampusScene3D
-                  espacios={espacios}
-                  incidencias={incidencias}
-                  onSelectEspacio={(esp) => setEspacioParaReserva(esp)}
-                  onReservarEspacio={(esp) => {
-                    setEspacioParaReserva(esp)
-                    setIsBookingOpen(true)
-                  }}
-                  onSwitchTo2D={() => setIs3DMode(false)}
-                />
-              ) : (
-                <SceneFallback2D
-                  espacios={espacios}
-                  incidencias={incidencias}
-                  onSelectEspacio={(esp) => setEspacioParaReserva(esp)}
-                  onReservarEspacio={(esp) => {
-                    setEspacioParaReserva(esp)
-                    setIsBookingOpen(true)
-                  }}
-                  onSwitchTo3D={() => setIs3DMode(true)}
-                />
-              )}
+              {/* Plano 3D de Torre Zenith · Nivel 6 con reservas persistentes (backend /api/nivel6) */}
+              <TorreZenithNivel6 onToast={addToast} />
+
             </div>
           )}
 
@@ -384,7 +413,7 @@ export default function App() {
       {/* Footer */}
       <Footer />
 
-      {/* Modales */}
+      {/* Modales con Glassmorphism Holográfico */}
       <SpaceBookingModal
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
