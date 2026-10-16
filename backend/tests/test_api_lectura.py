@@ -29,7 +29,7 @@ def client():
 def test_lista_espacios(client):
     r = client.get("/api/espacios")
     assert r.status_code == 200
-    assert [e["id"] for e in r.json()] == ["cosmos", "azul"]
+    assert [e["id"] for e in r.json()] == ["azul", "cosmos"]
 
 
 def test_espacio_inexistente_responde_404_con_codigo(client):
