@@ -60,7 +60,7 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
     <div className="space-y-6">
       {/* Tarjetas Holográficas de Métricas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="holo-card p-4.5">
+        <div className="holo-card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-mono uppercase tracking-wider">Espacios Totales</span>
             <Building2 className="w-4 h-4 text-cyan-400" />
@@ -69,30 +69,30 @@ export const SpacesMatrix: React.FC<SpacesMatrixProps> = ({
           <span className="text-[11px] text-slate-400 font-mono">Aforo Global: {totalCapacidad} pax</span>
         </div>
 
-        <div className="holo-card p-4.5">
+        <div className="holo-card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-emerald-400 font-mono uppercase tracking-wider">Operativos</span>
-            <CheckCircle2 className="w-4 h-4 text-[#00FF9D]" />
+            <CheckCircle2 className="w-4 h-4 text-[#34D399]" />
           </div>
-          <p className="text-3xl font-black font-mono text-[#00FF9D] mt-1.5 glow-mint">{disponiblesCount}</p>
+          <p className="text-3xl font-black font-mono text-[#34D399] mt-1.5 glow-mint">{disponiblesCount}</p>
           <span className="text-[11px] text-slate-400 font-mono">Listos para reserva</span>
         </div>
 
-        <div className="holo-card p-4.5">
+        <div className="holo-card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-amber-400 font-mono uppercase tracking-wider">En Mantenimiento</span>
-            <AlertTriangle className="w-4 h-4 text-[#FFB703]" />
+            <AlertTriangle className="w-4 h-4 text-[#FBBF24]" />
           </div>
-          <p className="text-3xl font-black font-mono text-[#FFB703] mt-1.5">{mantenimientoCount}</p>
+          <p className="text-3xl font-black font-mono text-[#FBBF24] mt-1.5">{mantenimientoCount}</p>
           <span className="text-[11px] text-slate-400 font-mono">Mantenimiento preventivo</span>
         </div>
 
-        <div className="holo-card p-4.5 border-rose-500/40">
+        <div className="holo-card p-5 border-rose-500/40">
           <div className="flex items-center justify-between">
             <span className="text-xs text-rose-400 font-mono uppercase tracking-wider">RN-04 Inhabilitados</span>
-            <ShieldAlert className="w-4 h-4 text-[#FF2A55]" />
+            <ShieldAlert className="w-4 h-4 text-[#FB7185]" />
           </div>
-          <p className="text-3xl font-black font-mono text-[#FF2A55] mt-1.5 glow-crimson">{inhabilitadosCount}</p>
+          <p className="text-3xl font-black font-mono text-[#FB7185] mt-1.5 glow-crimson">{inhabilitadosCount}</p>
           <span className="text-[11px] text-rose-300/80 font-mono">Bloqueados por incidencia</span>
         </div>
       </div>

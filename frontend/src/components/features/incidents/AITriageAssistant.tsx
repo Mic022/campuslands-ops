@@ -66,7 +66,7 @@ export const AITriageAssistant: React.FC<AITriageAssistantProps> = ({
       {/* Encabezado del Asistente */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#9D4EDD] via-[#FF007A] to-[#00F5FF] p-0.5 shadow-lg shadow-purple-500/30">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#A78BFA] via-[#F43F5E] to-[#7DD3FC] p-0.5 shadow-lg shadow-purple-500/30">
             <div className="w-full h-full bg-[#030712] rounded-[14px] flex items-center justify-center">
               <BrainCircuit className="w-6 h-6 text-purple-400 animate-pulse" />
             </div>

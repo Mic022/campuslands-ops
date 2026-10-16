@@ -383,18 +383,18 @@ export const JuryRulesInspector: React.FC<JuryRulesInspectorProps> = ({
 
         {/* Panel de Salida de la Prueba */}
         {testResult && (
-          <div className="mt-5 p-4.5 rounded-2xl bg-black/80 border border-white/15 shadow-2xl space-y-2.5 font-mono text-xs">
+          <div className="mt-5 p-5 rounded-2xl bg-black/80 border border-white/15 shadow-2xl space-y-2.5 font-mono text-xs">
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[11px] uppercase">Resultado de la Validación:</span>
               <div className="flex items-center gap-1.5">
                 {testResult.resultadoReal === (testResult.esperado === 'valido') ? (
                   <span className="flex items-center gap-1.5 text-emerald-300 font-bold bg-emerald-950/90 px-3 py-1 rounded-xl border border-emerald-500/50 glow-mint">
-                    <CheckCircle2 className="w-4 h-4 text-[#00FF9D]" />
+                    <CheckCircle2 className="w-4 h-4 text-[#34D399]" />
                     PRUEBA SUPERADA (CORRECTAMENTE RECHAZADA)
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 text-rose-300 font-bold bg-rose-950/90 px-3 py-1 rounded-xl border border-rose-500/50 glow-crimson">
-                    <XCircle className="w-4 h-4 text-[#FF2A55]" />
+                    <XCircle className="w-4 h-4 text-[#FB7185]" />
                     FALLO DE VALIDACIÓN
                   </span>
                 )}

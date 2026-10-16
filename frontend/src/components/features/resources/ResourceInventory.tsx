@@ -262,7 +262,7 @@ export const ResourceInventory: React.FC<ResourceInventoryProps> = ({
                     disabled={submittingId === rec.id}
                     className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00FF9D]" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#34D399]" />
                     <span>Dar Alta (Disponible)</span>
                   </button>
                 )}

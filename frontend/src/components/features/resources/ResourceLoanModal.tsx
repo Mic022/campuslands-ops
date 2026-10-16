@@ -161,9 +161,9 @@ export const ResourceLoanModal: React.FC<ResourceLoanModalProps> = ({
             : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
         }`}>
           {validacionActual.valido ? (
-            <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-[#FFB703] shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-[#FBBF24] shrink-0 mt-0.5" />
           )}
           <div>
             <span className="font-mono text-[10px] font-bold block uppercase tracking-wide">
