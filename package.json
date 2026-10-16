@@ -1,0 +1,11 @@
+{
+  "name": "campuslands-ops-root",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm run dev --prefix frontend",
+    "dev:api": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
+    "build": "npm run build --prefix frontend",
+    "install:all": "npm install --prefix frontend --legacy-peer-deps"
+  }
+}

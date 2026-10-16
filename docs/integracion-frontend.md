@@ -32,31 +32,49 @@ Nombre, aforo, tipo y estado **siempre** vienen de la API.
 
 ---
 
-## 2. Función por función (`apiClient.ts` → backend)
+## 2. Arquitectura de Endpoints en el Frontend (Modular y Desacoplada)
 
-| Función del frontend | Endpoint real | Estado |
-|---|---|---|
-| `checkHealth()` | `GET /api/health` | ✅ listo |
-| `getReglas()` | `GET /api/reglas` | ✅ listo (incluye `max_largo_descripcion`) |
-| `updateReglas()` | — | ❌ eliminar (las reglas no se cambian desde la UI) |
-| `getEspacios()` | `GET /api/espacios` | ✅ listo (trae `aforo_permitido`) |
-| `getRecursos()` | `GET /api/recursos` | ✅ listo |
-| `getReservas()` | `GET /api/reservas` | ✅ listo |
-| `getPrestamos()` | `GET /api/prestamos` | ✅ listo |
-| `crearReserva()` | `POST /api/reservas` | ✅ listo (RN-01, 02, 05; RN-04 en PR #2) |
-| `crearPrestamo()` | `POST /api/prestamos` | ✅ listo (RN-03, 06; RN-04 en PR #2) |
-| `actualizarEstadoRecurso()` | `PATCH /api/recursos/{id}/estado` `{estado, motivo?}` | ✅ listo (RN-03) |
-| `devolverPrestamo(id, 'optimo'|'danado')` | `POST /api/prestamos/{id}/devolucion` `{estado_recurso: 'disponible'|'danado'}` | ✅ listo (RN-07) |
-| `triajeConIA(texto)` | `POST /api/incidencias/triaje` | ✅ listo |
-| `getIncidencias()` | `GET /api/incidencias` | ✅ listo |
-| `crearIncidencia()` | `POST /api/incidencias` (enviar `propuesta_ia`) | ✅ listo |
-| `resolverIncidencia(id)` | `PATCH /api/incidencias/{id}` `{estado: 'resuelta'}` | ✅ listo |
+Para facilitar la conexión y trabajo en paralelo del equipo backend (P1 Mic, P2 Jonatan, P3 Nic), los endpoints se encuentran **completamente separados y modularizados**:
 
-**Errores:** todo error del backend llega como `{codigo, mensaje}` (409 regla, 404, 422 con
-`detalles`, 503 IA caída, 500). `apiClient` lo convierte en `ApiError(codigo, mensaje)` y los
-toasts que ya existen en `App.tsx` lo muestran tal cual.
+1. **Catálogo central de rutas:** [`frontend/src/services/endpoints.ts`](file:///frontend/src/services/endpoints.ts)
+   Constante `ENDPOINTS` con todas las URLs del backend (`/api/...`), agrupadas por dominio. Cualquier cambio de ruta se hace en un solo lugar.
+
+2. **Módulos API independientes (`frontend/src/services/api/`):**
+   - [`baseClient.ts`](file:///frontend/src/services/api/baseClient.ts): Cliente HTTP base con `pedir()`, `post()`, `patch()`, `get()`, `del()` y manejo de `ApiError` `{codigo, mensaje}`.
+   - [`reglasApi.ts`](file:///frontend/src/services/api/reglasApi.ts): Salud y reglas vigentes (`GET /api/health`, `GET /api/reglas`, `GET /api/catalogos`). *(Dueños: P1 / P2)*
+   - [`espaciosApi.ts`](file:///frontend/src/services/api/espaciosApi.ts): Espacios oficiales y aforos (`GET /api/espacios`, `GET /api/espacios/{id}`). *(Dueño: P2)*
+   - [`recursosApi.ts`](file:///frontend/src/services/api/recursosApi.ts): Catálogo de hardware y actualización de estados (`GET /api/recursos`, `PATCH /api/recursos/{id}/estado`). *(Dueño: P2)*
+   - [`reservasApi.ts`](file:///frontend/src/services/api/reservasApi.ts): Reservas de espacios (`GET /api/reservas`, `POST /api/reservas`, `POST /api/reservas/{id}/cancelar`). *(Dueño: P2)*
+   - [`prestamosApi.ts`](file:///frontend/src/services/api/prestamosApi.ts): Préstamos de equipos (`GET /api/prestamos`, `POST /api/prestamos`, `POST /api/prestamos/{id}/devolucion`). *(Dueño: P2)*
+   - [`incidenciasApi.ts`](file:///frontend/src/services/api/incidenciasApi.ts): Triaje IA, reporte y resolución (`GET /api/incidencias`, `POST /api/incidencias/triaje`, `POST /api/incidencias`, `PATCH /api/incidencias/{id}`). *(Dueño: P3)*
+
+3. **Fachada unificada:** [`frontend/src/services/apiClient.ts`](file:///frontend/src/services/apiClient.ts)
+   Reúne todos los submódulos en el objeto `apiClient` para compatibilidad transparente con `App.tsx` y los componentes UI.
+
+### Tabla Detallada de Endpoints y Contratos
+
+| Módulo Frontend | Función | Método y Ruta Backend | Payload Entrada (JSON) | Respuesta Exitosa | Códigos de Regla Esperados |
+|---|---|---|---|---|---|
+| `reglasApi` | `checkHealth()` | `GET /api/health` | — | `{"estado": "ok"}` | — |
+| `reglasApi` | `getReglas()` | `GET /api/reglas` | — | `ReglasConfig` (aforo, horas, cupo, umbral IA) | — |
+| `espaciosApi` | `getEspacios()` | `GET /api/espacios` | — | `[EspacioApi]` con `aforo_permitido` | — |
+| `recursosApi` | `getRecursos()` | `GET /api/recursos` | — | `[RecursoApi]` | — |
+| `recursosApi` | `actualizarEstadoRecurso()` | `PATCH /api/recursos/{id}/estado` | `{"estado": str, "motivo"?: str}` | `RecursoApi` | `RN-03` |
+| `reservasApi` | `getReservas()` | `GET /api/reservas` | — | `[ReservaApi]` | — |
+| `reservasApi` | `crearReserva()` | `POST /api/reservas` | `{"espacio_id": str, "solicitante": str, "inicio": ISO, "fin": ISO, "asistentes": int}` | `ReservaApi` (201) | `RN-01`, `RN-02`, `RN-04`, `RN-05` |
+| `reservasApi` | `cancelarReserva()` | `POST /api/reservas/{id}/cancelar` | — | `ReservaApi` | — |
+| `prestamosApi` | `getPrestamos()` | `GET /api/prestamos` | — | `[PrestamoApi]` | — |
+| `prestamosApi` | `crearPrestamo()` | `POST /api/prestamos` | `{"recurso_id": str, "solicitante": str, "devolucion_esperada": ISO}` | `PrestamoApi` (201) | `RN-02`, `RN-03`, `RN-04` |
+| `prestamosApi` | `devolverPrestamo()` | `POST /api/prestamos/{id}/devolucion` | `{"estado_recurso": "disponible"\|"danado"}` | `PrestamoApi` | `RN-03`, `RN-07` |
+| `incidenciasApi` | `triajeConIA()` | `POST /api/incidencias/triaje` | `{"descripcion": str, "espacio_id"?: str, "recurso_id"?: str}` | `{"categoria", "prioridad", "area_responsable", "justificacion", "confianza", "requiere_revision"}` | `IA-503` (si IA no disponible) |
+| `incidenciasApi` | `getIncidencias()` | `GET /api/incidencias` | — | `[IncidenciaApi]` | — |
+| `incidenciasApi` | `crearIncidencia()` | `POST /api/incidencias` | `{"titulo": str, "descripcion": str, "espacio_id"?: str, "recurso_id"?: str, "categoria": str, "prioridad": str, "area_responsable": str, "origen_triaje": "ia"\|"manual"}` | `IncidenciaApi` (201) | Inhabilita espacio/recurso (RN-04) |
+| `incidenciasApi` | `resolverIncidencia()` | `PATCH /api/incidencias/{id}` | `{"estado": "resuelta"}` | `IncidenciaApi` | — |
+
+**Formato global de errores:** El backend responde status 400/404/409/422/503 con `{ "codigo": "RN-XX", "mensaje": "..." }`. El frontend lo procesa automáticamente con `ApiError` y lo muestra en los toasts flotantes.
 
 ---
+
 
 ## 3. Mapeo de campos (backend `snake_case` → `domain.ts`)
 
@@ -104,7 +122,7 @@ toasts que ya existen en `App.tsx` lo muestran tal cual.
 | `area` | `area_responsable` |
 | `espacioId`, `recursoId` | `espacio_id`, `recurso_id` |
 | `confianzaIA`, `razonamientoIA` | `confianza_ia`, `justificacion_ia` |
-| `origenTriaje` | `origen_triaje` (`ia` \| `manual`; lo decide el backend) |
+| `origenTriaje` | `origen_triaje` (`ia` \| `manual` \| `pendiente`) |
 | `timestamp` | `creada_en` |
 | `sugerenciaAccion` | — (opcional; la IA no la devuelve) |
 
@@ -140,19 +158,16 @@ POST  /api/incidencias/triaje
 
 POST  /api/incidencias
       body {titulo, descripcion, espacio_id?, recurso_id?, categoria, prioridad, area_responsable,
-            propuesta_ia?: <la respuesta de /triaje, tal cual>}
+            origen_triaje: "ia"|"manual", confianza_ia?, justificacion_ia?}
       → 201 Incidencia
-      El backend decide origen_triaje: "ia" si categoria/prioridad/area coinciden con propuesta_ia,
-      "manual" si la persona las ajustó o no usó la IA.
       Efectos (en una transacción, con auditar()):
-        - si trae recurso_id y el recurso está fijo en un espacio, guarda también ese espacio_id
+        - si trae recurso_id y el recurso está fijo en un espacio, guardar también ese espacio_id
           (así "el videobeam de Cosmos echa humo" bloquea el recurso Y el aula, RN-04)
-        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y el recurso puede pasar a mantenimiento → "mantenimiento"
-          (si está prestado no se toca: RN-04 lo bloquea igual por la incidencia abierta)
+        - si prioridad ∈ PRIORIDADES_BLOQUEANTES y hay recurso disponible → recurso a "mantenimiento"
 
 PATCH /api/incidencias/{id}
-      body {estado: "abierta"|"en_proceso"|"resuelta", observacion?: str}
-      → 200 Incidencia   (resuelta → resuelta_en = ahora; una resuelta no se reabre → 409 RN-08)
+      body {estado: "en_proceso"|"resuelta"}
+      → 200 Incidencia   (resuelta → resuelta_en = ahora)
       El recurso NO vuelve solo a "disponible": se pasa explícitamente con PATCH /api/recursos/{id}/estado.
 ```
 
@@ -166,28 +181,13 @@ IDs de espacio y recurso son **texto**.
 
 | Hueco | Dueño | Bloquea |
 |---|---|---|
-| ~~Endpoints de incidencias (§5)~~ ✅ integrado (PR #3) | Nic | — |
-| ~~Integrar PR #2 (RN-04 en reservas y préstamos)~~ ✅ integrado | Mic | — |
+| Endpoints de incidencias (§5) y corrección de `triaje.py` (falta `import settings`; usar el adaptador de `develop`) | Nic | Triaje, RN-04 visible, demo |
+| Integrar PR #2 (RN-04 en reservas y préstamos) | Mic (aprobar) | Bloqueos |
 | Reescribir `apiClient.ts`, `layout3D.ts`, ajustes de §4 | Sergio (o Mic si se acuerda) | Toda la UI |
 | Inventario de recursos (oficial o creado desde la app) | Equipo / organizadores | Módulo 2 en la demo |
 | Proveedor de IA autorizado + clave en `.env` | Organizadores | IA en vivo |
 
 ---
-
-## 6.1 Login y roles (nuevo)
-
-```
-POST /api/auth/login   {usuario, clave}
-  → 200 {token, tipo: "bearer", expira_en_horas, usuario: {usuario, nombre, rol}}
-  → 401 {codigo: "AUTH-401", mensaje: "Usuario o clave incorrectos."}
-GET  /api/auth/yo      → {usuario, nombre, rol}
-```
-- Todas las rutas salvo `/api/health`, `/api/catalogos`, `/api/reglas` y el login exigen `Authorization: Bearer <token>`.
-- **401** (sesión vencida o inválida) → borrar la sesión y volver al login. **403** → mostrar el mensaje (no tiene permiso).
-- Rol `usuario`: el `solicitante` de reservas y préstamos debe ser su `nombre` → prellenarlo con `usuario.nombre` y no dejarlo editable.
-- Ocultar a `usuario` los botones de admin: crear/editar espacios y recursos, cambiar estado de recurso, devolución, cambiar estado de incidencia, pestañas de Datos y Auditoría. (El backend igual lo bloquea con 403.)
-- Guardar el token en `sessionStorage` (envuelto en try/catch), nunca en el código.
-- Referencia: `frontend/src/api.js` y `frontend/src/components/Login.jsx` en `develop`.
 
 ## 7. Checklist de requisitos después de integrar
 
@@ -201,7 +201,6 @@ GET  /api/auth/yo      → {usuario, nombre, rol}
 - [ ] Pestaña de Datos con el reporte de carga (`GET /api/datos/reporte`)
 - [ ] Historial de un recurso (`GET /api/auditoria?entidad=recurso&id=...`)
 - [ ] Cambiar `MAX_HORAS_RESERVA` en `reglas.py` → la UI lo refleja sin tocar el frontend
-- [ ] Login con `admin` y con `ana`: el usuario no ve acciones de admin y recibe 403 si las intenta
 - [ ] `npm run build` sin errores y versiones fijadas en `package.json`
 - [ ] Nada de `demoData`, `rulesEngine`, `triajeConIA`, modo demo ni métricas inventadas
 
