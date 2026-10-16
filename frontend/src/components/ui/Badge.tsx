@@ -9,40 +9,40 @@ interface BadgeProps {
 
 const variantStyles: Record<string, { bg: string; text: string; dot: string; border: string }> = {
   emerald: {
-    bg: 'bg-emerald-950/60',
-    text: 'text-emerald-400',
-    dot: 'bg-emerald-400 shadow-[0_0_8px_#10B981]',
-    border: 'border-emerald-500/30'
+    bg: 'bg-[#00FF9D]/10',
+    text: 'text-[#00FF9D]',
+    dot: 'bg-[#00FF9D] shadow-[0_0_10px_#00FF9D]',
+    border: 'border-[#00FF9D]/40'
   },
   amber: {
-    bg: 'bg-amber-950/60',
-    text: 'text-amber-400',
-    dot: 'bg-amber-400 shadow-[0_0_8px_#F59E0B]',
-    border: 'border-amber-500/30'
+    bg: 'bg-[#FFB703]/10',
+    text: 'text-[#FFB703]',
+    dot: 'bg-[#FFB703] shadow-[0_0_10px_#FFB703]',
+    border: 'border-[#FFB703]/40'
   },
   rose: {
-    bg: 'bg-rose-950/60',
-    text: 'text-rose-400',
-    dot: 'bg-rose-400 shadow-[0_0_8px_#EF4444]',
-    border: 'border-rose-500/30'
+    bg: 'bg-[#FF2A55]/15',
+    text: 'text-[#FF2A55]',
+    dot: 'bg-[#FF2A55] shadow-[0_0_10px_#FF2A55]',
+    border: 'border-[#FF2A55]/40'
   },
   sky: {
-    bg: 'bg-sky-950/60',
-    text: 'text-sky-400',
-    dot: 'bg-sky-400 shadow-[0_0_8px_#38BDF8]',
-    border: 'border-sky-500/30'
+    bg: 'bg-[#00F5FF]/10',
+    text: 'text-[#00F5FF]',
+    dot: 'bg-[#00F5FF] shadow-[0_0_10px_#00F5FF]',
+    border: 'border-[#00F5FF]/40'
   },
   violet: {
-    bg: 'bg-purple-950/60',
-    text: 'text-purple-400',
-    dot: 'bg-purple-400 shadow-[0_0_8px_#8B5CF6]',
-    border: 'border-purple-500/30'
+    bg: 'bg-[#9D4EDD]/15',
+    text: 'text-[#C77DFF]',
+    dot: 'bg-[#9D4EDD] shadow-[0_0_10px_#9D4EDD]',
+    border: 'border-[#9D4EDD]/40'
   },
   neutral: {
-    bg: 'bg-slate-800/60',
+    bg: 'bg-white/5',
     text: 'text-slate-300',
     dot: 'bg-slate-400',
-    border: 'border-slate-700/50'
+    border: 'border-white/10'
   }
 }
 
@@ -53,14 +53,14 @@ export const Badge: React.FC<BadgeProps> = ({
   showDot = true
 }) => {
   const styles = variantStyles[variant] || variantStyles.neutral
-  const sizeClass = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-xs px-2.5 py-1'
+  const sizeClass = size === 'sm' ? 'text-[10px] px-2.5 py-0.5' : 'text-xs px-3 py-1'
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-medium rounded-full border ${styles.bg} ${styles.text} ${styles.border} ${sizeClass}`}
+      className={`inline-flex items-center gap-1.5 font-mono font-semibold rounded-full border backdrop-blur-md ${styles.bg} ${styles.text} ${styles.border} ${sizeClass}`}
     >
       {showDot && <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />}
-      <span className="capitalize">{label}</span>
+      <span className="capitalize tracking-wider">{label}</span>
     </span>
   )
 }
