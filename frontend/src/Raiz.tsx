@@ -20,8 +20,14 @@ const RegistroPage = lazy(() => import('./pages/auth/RegistroPage').then(m => ({
 const RecuperarPage = lazy(() => import('./pages/auth/RecuperarPage').then(m => ({ default: m.RecuperarPage })))
 const RestablecerPage = lazy(() => import('./pages/auth/RestablecerPage').then(m => ({ default: m.RestablecerPage })))
 
-const Redirigir: React.FC<{ a: string }> = ({ a }) => {
-  useEffect(() => navegar(a, { reemplazar: true }), [a])
+/**
+ * Redirige solo si la persona sigue en la ruta desde la que se decidió: si otra parte de la app
+ * ya navegó (p. ej. al login con el aviso de sesión cerrada), no se pisa ese destino.
+ */
+const Redirigir: React.FC<{ a: string; desde: string }> = ({ a, desde }) => {
+  useEffect(() => {
+    if (window.location.pathname === desde) navegar(a, { reemplazar: true })
+  }, [a, desde])
   return <PantallaCarga />
 }
 
@@ -82,7 +88,7 @@ export const AccesoDenegado: React.FC = () => (
 )
 
 export const Raiz: React.FC = () => {
-  const { estado, esAdmin, verificar } = useAuth()
+  const { estado, esAdmin, motivoSalida, verificar } = useAuth()
   const { ruta, params } = useRuta()
 
   if (estado === 'verificando') return <PantallaCarga />
@@ -91,7 +97,7 @@ export const Raiz: React.FC = () => {
   const autenticado = estado === 'autenticado'
 
   if (esRutaPublica(ruta)) {
-    if (autenticado) return <Redirigir a={destinoSeguro(params.get('siguiente'))} />
+    if (autenticado) return <Redirigir desde={ruta} a={destinoSeguro(params.get('siguiente'))} />
     return (
       <Suspense fallback={<PantallaCarga texto="Cargando…" />}>
         {ruta === '/login' && <LoginPage />}
@@ -102,8 +108,13 @@ export const Raiz: React.FC = () => {
     )
   }
 
-  if (!esRutaPrivada(ruta)) return <Redirigir a={autenticado ? '/' : '/login'} />
-  if (!autenticado) return <Redirigir a={urlLogin(undefined, ruta)} />
+  if (!esRutaPrivada(ruta)) return <Redirigir desde={window.location.pathname} a={autenticado ? '/' : '/login'} />
+  if (!autenticado) {
+    // replace: el botón Atrás no vuelve a la pantalla privada. Tras cerrar sesión no se guarda
+    // "siguiente" (la próxima persona entra al panel principal).
+    const destino = motivoSalida === 'salida' ? urlLogin('salida') : urlLogin(motivoSalida ?? undefined, ruta)
+    return <Redirigir desde={ruta} a={destino} />
+  }
   if (ruta === '/admin' && !esAdmin) return <AccesoDenegado />
 
   return (

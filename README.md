@@ -60,10 +60,33 @@ define qué puede hacer cada uno; una dependencia global la aplica a todas las r
 | Reportar incidencias (triaje y confirmación) | ✅ | ✅ |
 | Crear/editar espacios y recursos, cambiar estado de recursos, registrar devoluciones, cambiar estado de incidencias | ❌ | ✅ |
 | Reporte de carga y auditoría | ❌ | ✅ |
+| Gestionar cuentas (`/admin`): crear, cambiar rol, activar/desactivar, desbloquear | ❌ | ✅ |
 
-- `POST /api/auth/login` `{usuario, clave}` → token; luego `Authorization: Bearer <token>`. Sin sesión → 401 `AUTH-401`; sin permiso → 403 `AUTH-403`.
-- Contraseñas con PBKDF2-SHA256 y sal; tokens firmados con HMAC-SHA256 (`SECRET_KEY`) que vencen en `TOKEN_HORAS`. Solo librería estándar.
-- Usuarios de prueba ficticios definidos en `.env` (`ADMIN_USUARIO`, `USUARIOS_DEMO`). Si una clave está vacía, `reset_db` genera una y la muestra; **no hay claves en el repositorio**.
+**Pantallas:** `/login` (primera pantalla sin sesión), `/registro`, `/recuperar`, `/restablecer`; `/` es la app y
+`/admin` el panel de usuarios. Sin sesión, cualquier ruta privada lleva al login; tras cerrar sesión, el botón
+Atrás no vuelve a la app.
+
+**Sesión y seguridad**
+- `POST /api/auth/login` `{usuario, clave, recordar}`: `usuario` puede ser el nombre de usuario o el correo.
+  La sesión vive en el servidor (tabla `sesiones`) y viaja en una **cookie HttpOnly** (`SameSite=Lax`,
+  `Secure` en producción); el JavaScript nunca ve el token. `GET /api/auth/yo` devuelve el usuario y el
+  **token CSRF**, que el frontend envía en `X-CSRF-Token` en cada método que escribe.
+- `POST /api/auth/logout` revoca la sesión en el servidor. Caducidad: `TOKEN_HORAS` (o `SESION_RECORDAR_DIAS`
+  con "Recordar sesión") e inactividad `SESION_INACTIVIDAD_MIN`.
+- Contraseñas con **Argon2id**; los hashes PBKDF2 anteriores se migran solos en el siguiente login.
+  Política configurable (`CLAVE_*`), publicada en `GET /api/auth/politica` para que la UI la muestre.
+- Fuerza bruta: tras `LOGIN_MAX_INTENTOS` fallos la cuenta se bloquea `LOGIN_BLOQUEO_MIN` minutos (429);
+  también hay límite por IP. Los mensajes no revelan si una cuenta existe.
+- Registro público (`REGISTRO_PUBLICO`): siempre crea rol **usuario**; un campo `rol` en el formulario se
+  rechaza (422). Un admin solo se crea desde `/admin` o con `python -m scripts.crear_admin`.
+- Recuperación: enlace de un solo uso que caduca en `RECUPERACION_MIN` y revoca las sesiones abiertas. Requiere
+  `CORREO_MODO=smtp` (variables `SMTP_*`); en desarrollo, `CORREO_MODO=consola` imprime el correo en la
+  consola del backend. Sin correo configurado, la UI lo indica y no finge el envío.
+- CORS restringido al frontend, rechazo de escrituras desde otros orígenes, cabeceras de seguridad y
+  `/docs` desactivado con `ENTORNO=produccion`. Los eventos de acceso quedan en la auditoría (sin claves ni tokens).
+- Usuarios de prueba ficticios definidos en `.env` (`ADMIN_USUARIO`, `USUARIOS_DEMO`), solo fuera de producción.
+  Si una clave está vacía se genera una que cumple la política y se muestra una vez en la consola;
+  **no hay claves en el repositorio**. `reset_db` conserva las cuentas (usa `--borrar-usuarios` para empezar de cero).
 - La auditoría registra el nombre del usuario que hizo cada cambio.
 
 ## Uso de IA
@@ -142,7 +165,7 @@ la BD y levanta backend y frontend.
 
 ```bash
 # 1. Variables de entorno
-cp .env.example .env          # completar SECRET_KEY, claves de usuarios y la sección de IA
+cp .env.example .env          # completar claves de usuarios de prueba y la sección de IA
 
 # 2. Datos oficiales
 #    copiar los archivos entregados a data/raw/ (ver tabla de Manejo de datos)
@@ -171,4 +194,5 @@ pytest
 - **IDs de espacio** derivados del nombre (`Sala Verde 1` → `sala-verde-1`); el frontend y el plano 3D usan los mismos IDs.
 - **Concurrencia:** validar y escribir ocurre dentro de un candado y una transacción, para que dos reservas simultáneas no pasen la validación a la vez. Con PostgreSQL se usaría una restricción de exclusión.
 - **Sin borrado físico:** las reservas se cancelan, los préstamos se devuelven y los recursos se dan de baja, para conservar la trazabilidad.
-- **Autenticación simple:** usuarios de prueba y dos roles, sin registro ni recuperación de clave. Con más tiempo: gestión de usuarios y permisos más finos.
+- **Sesiones en SQLite y límite de intentos en memoria:** con varias instancias del backend, el limitador debería pasar a Redis.
+- **Propiedad por nombre:** reservas y préstamos se asocian al nombre del solicitante (por eso el nombre de cada cuenta es único).

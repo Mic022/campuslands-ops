@@ -10,14 +10,16 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { ApiError, EVENTO_SESION_EXPIRADA, csrf } from '../services/api/baseClient'
 import { authApi, SesionApi, UsuarioSesion } from '../services/api/authApi'
 import { guardarSesion } from '../services/sesion'
-import { navegar, urlLogin } from './rutas'
 
 type Estado = 'verificando' | 'autenticado' | 'anonimo' | 'sin_conexion'
+/** Por qué se cerró la sesión: el login muestra el aviso correspondiente. */
+export type MotivoSalida = 'salida' | 'expirada'
 
 interface AuthValor {
   estado: Estado
   usuario: UsuarioSesion | null
   esAdmin: boolean
+  motivoSalida: MotivoSalida | null
   /** Activa la sesión que devolvió POST /api/auth/login (el formulario anima el éxito antes). */
   establecerSesion: (sesion: SesionApi) => void
   cerrarSesion: () => Promise<void>
@@ -29,12 +31,16 @@ const AuthContexto = createContext<AuthValor | null>(null)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [estado, setEstado] = useState<Estado>('verificando')
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null)
+  const [motivoSalida, setMotivoSalida] = useState<MotivoSalida | null>(null)
   const estadoRef = useRef(estado)
   estadoRef.current = estado
 
-  const limpiar = useCallback(() => {
+  // No se navega aquí: Raiz redirige al login con el motivo en el mismo render en que cambia el
+  // estado (navegar por separado competía con esa redirección y se perdía el aviso).
+  const limpiar = useCallback((motivo: MotivoSalida | null = null) => {
     csrf.poner(null)
     guardarSesion(null)
+    setMotivoSalida(motivo)
     setUsuario(null)
     setEstado('anonimo')
   }, [])
@@ -49,9 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       const e = err as ApiError
       if (e.status === 401) {
-        const teniaSesion = estadoRef.current === 'autenticado'
-        limpiar()
-        if (teniaSesion) navegar(urlLogin('expirada', window.location.pathname), { reemplazar: true })
+        limpiar(estadoRef.current === 'autenticado' ? 'expirada' : null)
       }
       // Sin conexión con la API: si ya había sesión se conserva; si no, se muestra el aviso.
       else if (estadoRef.current !== 'autenticado') setEstado('sin_conexion')
@@ -66,8 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const alExpirar = () => {
       if (estadoRef.current !== 'autenticado') return
-      limpiar()
-      navegar(urlLogin('expirada', window.location.pathname), { reemplazar: true })
+      limpiar('expirada')
     }
     window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
     return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
@@ -92,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const establecerSesion = useCallback((s: SesionApi) => {
     csrf.poner(s.csrf_token)
     guardarSesion(s.usuario)
+    setMotivoSalida(null)
     setUsuario(s.usuario)
     setEstado('autenticado')
   }, [])
@@ -102,14 +106,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Aunque la API no responda, la sesión local se cierra; el servidor la dejará caducar.
     }
-    limpiar()
-    // replace: el botón Atrás no vuelve a una pantalla privada ya cargada.
-    navegar(urlLogin('salida'), { reemplazar: true })
+    limpiar('salida')
   }, [limpiar])
 
   const valor = useMemo<AuthValor>(
-    () => ({ estado, usuario, esAdmin: usuario?.rol === 'admin', establecerSesion, cerrarSesion, verificar }),
-    [estado, usuario, establecerSesion, cerrarSesion, verificar]
+    () => ({ estado, usuario, esAdmin: usuario?.rol === 'admin', motivoSalida, establecerSesion, cerrarSesion, verificar }),
+    [estado, usuario, motivoSalida, establecerSesion, cerrarSesion, verificar]
   )
 
   return <AuthContexto.Provider value={valor}>{children}</AuthContexto.Provider>

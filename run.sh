@@ -4,12 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [ ! -f .env ]; then
-  cp .env.example .env
-  # Clave de firma de sesiones propia de esta máquina (nunca se sube al repo).
-  sed -i.bak "s|^SECRET_KEY=$|SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')|" .env && rm -f .env.bak
-  echo "Creado .env desde .env.example"
-fi
+[ -f .env ] || { cp .env.example .env; echo "Creado .env desde .env.example"; }
 
 echo "==> Backend"
 cd backend
