@@ -37,6 +37,7 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
   const [seleccion, setSeleccion] = useState<SalaId | null>(null)
   // En pantallas estrechas las diez etiquetas se solapan: arrancan ocultas.
   const [mostrarNombres, setMostrarNombres] = useState(() => window.innerWidth >= 640)
+  const [mostrarPersonas, setMostrarPersonas] = useState(true)
   const [murosVisibles, setMurosVisibles] = useState(true)
   const [vista, setVista] = useState<'3d' | 'superior'>('3d')
   const [comando, setComando] = useState<ComandoCamara | null>(null)
@@ -114,6 +115,15 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
     [salas]
   )
 
+  // Personas que entran y se sientan: los asistentes de la reserva activa a la hora consultada.
+  // null mientras no hay datos del servidor (no se inventan ocupantes).
+  const ocupantes = useMemo(() => {
+    if (carga !== 'ok' || !datos) return null
+    const m: Partial<Record<SalaId, number>> = {}
+    for (const s of datos.salas) if (s.ocupacion === 'reservada' && s.reserva_actual) m[s.id] = s.reserva_actual.asistentes
+    return m
+  }, [datos, carga])
+
   // ---------- Acciones ----------
 
   const elegir = (id: SalaId, enfocar = true) => {
@@ -145,6 +155,8 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
             mostrarNombres={mostrarNombres}
             murosVisibles={murosVisibles}
             comando={comando}
+            ocupantes={ocupantes}
+            mostrarPersonas={mostrarPersonas}
             activo={enPantalla}
             onSeleccionar={id => elegir(id)}
           />
@@ -188,6 +200,8 @@ export const TorreZenithNivel6: React.FC<{ onToast: Toast }> = ({ onToast }) => 
           vista={vista}
           mostrarNombres={mostrarNombres}
           murosVisibles={murosVisibles}
+          mostrarPersonas={mostrarPersonas}
+          onPersonas={() => setMostrarPersonas(v => !v)}
           onReiniciar={() => {
             setVista('3d')
             camara({ tipo: 'reiniciar' })

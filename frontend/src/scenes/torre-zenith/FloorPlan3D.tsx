@@ -9,6 +9,7 @@ import { CommonAreas } from './CommonAreas'
 import { SpaceBackdrop } from './SpaceBackdrop'
 import { aMundoPoli, centroide, radio } from './geometria'
 import { Room3D } from './Room3D'
+import { Personajes } from './personas/Personajes'
 
 interface FloorPlan3DProps {
   nombres: Record<SalaId, string>
@@ -17,6 +18,9 @@ interface FloorPlan3DProps {
   mostrarNombres: boolean
   murosVisibles: boolean
   comando: ComandoCamara | null
+  /** Asistentes de la reserva activa por sala (null mientras no hay datos del servidor). */
+  ocupantes: Partial<Record<SalaId, number>> | null
+  mostrarPersonas: boolean
   /** false cuando el visor no está en pantalla: se deja de renderizar. */
   activo?: boolean
   onSeleccionar: (id: SalaId) => void
@@ -50,6 +54,8 @@ export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
   mostrarNombres,
   murosVisibles,
   comando,
+  ocupantes,
+  mostrarPersonas,
   activo = true,
   onSeleccionar
 }) => {
@@ -127,6 +133,8 @@ export const FloorPlan3D: React.FC<FloorPlan3DProps> = ({
           onSeleccionar={onSeleccionar}
         />
       ))}
+
+      {mostrarPersonas && <Personajes ocupantes={ocupantes} />}
 
       <CameraRig comando={comando} focos={focos} />
     </Canvas>

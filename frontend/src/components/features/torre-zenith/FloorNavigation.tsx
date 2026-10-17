@@ -1,16 +1,18 @@
 import React from 'react'
-import { Box, CalendarCheck, Layers, List, Map, RotateCcw, Tag, ZoomIn, ZoomOut } from 'lucide-react'
+import { Box, CalendarCheck, Layers, List, Map, RotateCcw, Tag, UsersRound, ZoomIn, ZoomOut } from 'lucide-react'
 
 interface FloorNavigationProps {
   vista: '3d' | 'superior'
   mostrarNombres: boolean
   murosVisibles: boolean
+  mostrarPersonas: boolean
   onReiniciar: () => void
   onVista: (v: '3d' | 'superior') => void
   onAcercar: () => void
   onAlejar: () => void
   onNombres: () => void
   onMuros: () => void
+  onPersonas: () => void
   onLista: () => void
   onReservas: () => void
 }
@@ -53,6 +55,7 @@ export const FloorNavigation: React.FC<FloorNavigationProps> = p => (
     <Separador />
     <Boton titulo={p.mostrarNombres ? 'Ocultar nombres' : 'Mostrar nombres'} activo={p.mostrarNombres} onClick={p.onNombres}><Tag className="h-4 w-4" /></Boton>
     <Boton titulo={p.murosVisibles ? 'Ocultar paredes' : 'Mostrar paredes'} activo={p.murosVisibles} onClick={p.onMuros}><Layers className="h-4 w-4" /></Boton>
+    <Boton titulo={p.mostrarPersonas ? 'Ocultar personas' : 'Mostrar personas'} activo={p.mostrarPersonas} onClick={p.onPersonas}><UsersRound className="h-4 w-4" /></Boton>
     <Separador />
     <Boton titulo="Listado de salas" onClick={p.onLista}><List className="h-4 w-4" /></Boton>
     <Boton titulo="Mis reservas" onClick={p.onReservas}><CalendarCheck className="h-4 w-4" /></Boton>
