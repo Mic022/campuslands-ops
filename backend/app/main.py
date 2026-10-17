@@ -127,7 +127,26 @@ def _mensaje_validacion(campo: str, error: dict) -> str:
         return MENSAJES_FORMATO[campo]
     if error["type"] == "extra_forbidden":
         return "Campo no permitido."
-    return error["msg"]
+    ctx = error.get("ctx") or {}
+    traducciones = {
+        "missing": "Es obligatorio.",
+        "string_too_short": f"Debe tener al menos {ctx.get('min_length')} caracteres.",
+        "string_too_long": f"Debe tener como máximo {ctx.get('max_length')} caracteres.",
+        "greater_than": f"Debe ser mayor que {ctx.get('gt')}.",
+        "greater_than_equal": f"Debe ser mayor o igual que {ctx.get('ge')}.",
+        "less_than": f"Debe ser menor que {ctx.get('lt')}.",
+        "less_than_equal": f"Debe ser menor o igual que {ctx.get('le')}.",
+        "int_parsing": "Debe ser un número entero.",
+        "float_parsing": "Debe ser un número.",
+        "bool_parsing": "Debe ser verdadero o falso.",
+        "datetime_parsing": "Fecha y hora inválidas (formato AAAA-MM-DDTHH:MM).",
+        "datetime_from_date_parsing": "Fecha y hora inválidas (formato AAAA-MM-DDTHH:MM).",
+        "date_parsing": "Fecha inválida (formato AAAA-MM-DD).",
+        "enum": f"Valor no permitido. Opciones: {ctx.get('expected')}.",
+        "literal_error": f"Valor no permitido. Opciones: {ctx.get('expected')}.",
+        "string_type": "Debe ser texto.",
+    }
+    return traducciones.get(error["type"], error["msg"])
 
 
 @app.exception_handler(RequestValidationError)

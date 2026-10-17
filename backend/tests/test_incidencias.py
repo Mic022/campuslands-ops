@@ -226,3 +226,24 @@ def test_listar_con_filtros(client):
     assert len(client.get("/api/incidencias").json()) == 2
     assert [i["recurso_id"] for i in client.get("/api/incidencias", params={"estado": "abierta"}).json()] == ["PC-01"]
     assert [i["id"] for i in client.get("/api/incidencias", params={"espacio_id": "cosmos"}).json()] == [a_id]
+
+
+# ---------- Validación de largos y mensajes legibles ----------
+
+@pytest.mark.parametrize("ruta,cuerpo,campo", [
+    ("/api/incidencias/triaje", {"descripcion": "luz rota"}, "descripcion"),
+    ("/api/incidencias", {"titulo": "TV", "descripcion": "El televisor no enciende", "categoria": "otro",
+                          "prioridad": "baja", "area_responsable": "mantenimiento"}, "titulo"),
+    ("/api/incidencias", {"titulo": "Televisor", "descripcion": "no sirve", "categoria": "otro",
+                          "prioridad": "baja", "area_responsable": "mantenimiento"}, "descripcion"),
+])
+def test_textos_demasiado_cortos_responden_422_en_espanol(client, ruta, cuerpo, campo):
+    r = client.post(ruta, json=cuerpo)
+    assert r.status_code == 422
+    detalle = r.json()["detalles"][0]
+    assert detalle["campo"] == campo and "al menos" in detalle["mensaje"]
+
+
+def test_los_espacios_alrededor_no_cuentan_para_el_minimo(client):
+    r = client.post("/api/incidencias/triaje", json={"descripcion": "   corto    "})
+    assert r.status_code == 422

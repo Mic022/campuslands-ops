@@ -20,6 +20,10 @@ import {
   Bot
 } from 'lucide-react'
 
+/** Mínimos que valida el backend (backend/app/schemas/incidencias.py). */
+const MIN_TITULO = 5
+const MIN_DESCRIPCION = 10
+
 interface IncidentReportModalProps {
   isOpen: boolean
   onClose: () => void
@@ -67,6 +71,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   const [propuestaIA, setPropuestaIA] = useState<TriajeIAResponse | null>(null)
   const [revisado, setRevisado] = useState(false)
   const [errorIA, setErrorIA] = useState<string | null>(null)
+  const [errorForm, setErrorForm] = useState<string | null>(null)
   const [analizandoIA, setAnalizandoIA] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -92,7 +97,11 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   const exigeRevision = !!propuestaIA && propuestaIA.requiereRevisionHumana && !ajustada && !revisado
 
   const handleAnalizarConIA = async () => {
-    if (!descripcion.trim()) return
+    if (descripcion.trim().length < MIN_DESCRIPCION) {
+      setErrorForm(`Describe el problema con al menos ${MIN_DESCRIPCION} caracteres para que la IA pueda clasificarlo.`)
+      return
+    }
+    setErrorForm(null)
     try {
       setAnalizandoIA(true)
       setErrorIA(null)
@@ -124,7 +133,16 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!titulo.trim() || !descripcion.trim() || exigeRevision) return
+    if (exigeRevision) return
+    if (titulo.trim().length < MIN_TITULO) {
+      setErrorForm(`El título debe tener al menos ${MIN_TITULO} caracteres.`)
+      return
+    }
+    if (descripcion.trim().length < MIN_DESCRIPCION) {
+      setErrorForm(`La descripción debe tener al menos ${MIN_DESCRIPCION} caracteres.`)
+      return
+    }
+    setErrorForm(null)
 
     try {
       setLoading(true)
@@ -318,6 +336,10 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
               </p>
             </div>
           </div>
+        )}
+
+        {errorForm && (
+          <p role="alert" className="p-3 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-xs text-rose-200">{errorForm}</p>
         )}
 
         {errorIA && (

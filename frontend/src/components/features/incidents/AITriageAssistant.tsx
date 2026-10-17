@@ -49,6 +49,12 @@ export const AITriageAssistant: React.FC<AITriageAssistantProps> = ({
 
   const ejecutarTriaje = async (texto: string) => {
     if (!texto.trim()) return
+    if (texto.trim().length < 10) {
+      // Mismo mínimo que valida el backend (SolicitudTriaje.descripcion).
+      setResultado(null)
+      setError('Describe el problema con al menos 10 caracteres para que la IA pueda clasificarlo.')
+      return
+    }
     try {
       setAnalizando(true)
       setError(null)

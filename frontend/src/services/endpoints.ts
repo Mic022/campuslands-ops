@@ -47,7 +47,6 @@ export const ENDPOINTS = {
   RESERVAS: {
     LISTAR: '/reservas',
     CREAR: '/reservas',
-    OBTENER: (id: string | number) => `/reservas/${id}`,
     CANCELAR: (id: string | number) => `/reservas/${id}/cancelar`,
   },
 
@@ -62,7 +61,6 @@ export const ENDPOINTS = {
   PRESTAMOS: {
     LISTAR: '/prestamos',
     CREAR: '/prestamos',
-    OBTENER: (id: string | number) => `/prestamos/${id}`,
     DEVOLUCION: (id: string | number) => `/prestamos/${id}/devolucion`,
   },
 
@@ -73,14 +71,5 @@ export const ENDPOINTS = {
     TRIAJE_IA: '/incidencias/triaje',
     CREAR: '/incidencias',
     RESOLVER: (id: string | number) => `/incidencias/${id}`,
-  },
-
-  // Módulo 01 · Torre Zenith (Gemelo Digital)
-  NIVEL6: {
-    ESTADO: '/nivel6/estado',
-    REGLAS: '/nivel6/reglas',
-    RESERVAS: '/nivel6/reservas',
-    SALAS: '/nivel6/salas',
-    RESERVA_CANCELAR: (id: string | number) => `/nivel6/reservas/${id}/cancelar`,
   }
 } as const
