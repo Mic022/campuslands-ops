@@ -17,6 +17,7 @@ venv/
 
 # Datos oficiales: no se suben hasta que los organizadores lo autoricen
 data/raw/*
+!data/raw/capacidad_instalada.csv
 !data/raw/.gitkeep
 data/reports/*
 !data/reports/.gitkeep
