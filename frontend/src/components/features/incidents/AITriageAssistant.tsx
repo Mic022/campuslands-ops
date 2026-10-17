@@ -229,11 +229,13 @@ export const AITriageAssistant: React.FC<AITriageAssistantProps> = ({
             <p className="text-slate-200 italic leading-relaxed">"{resultado.razonamiento}"</p>
           </div>
 
-          {/* Sugerencia de Acción Inmediata */}
-          <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-xs">
-            <span className="text-cyan-300 font-bold block mb-1">Acción Operativa Recomendada:</span>
-            <p className="text-slate-100 leading-relaxed">{resultado.sugerenciaAccion}</p>
-          </div>
+          {/* Sugerencia de Acción Inmediata (opcional: el backend no siempre la devuelve) */}
+          {resultado.sugerenciaAccion && (
+            <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-xs">
+              <span className="text-cyan-300 font-bold block mb-1">Acción Operativa Recomendada:</span>
+              <p className="text-slate-100 leading-relaxed">{resultado.sugerenciaAccion}</p>
+            </div>
+          )}
 
           {/* Botón de Aplicar */}
           <div className="flex justify-end pt-2">

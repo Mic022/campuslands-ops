@@ -43,6 +43,12 @@ Valores permitidos:
   * baja: molestia menor o solicitud de mejora
 - area_responsable: {', '.join(areas)}
 
+Confianza (0 a 1): mide qué tan seguro estás de la clasificación, no qué tan grave es.
+  * 0.85 a 1: el texto dice claramente qué falla, dónde y su efecto.
+  * 0.6 a 0.84: el problema es claro pero falta algún dato (lugar exacto o impacto).
+  * menos de 0.6: el reporte es vago o admite varias categorías (p. ej. "un ruido extraño",
+    "algo raro"); en ese caso una persona revisará tu propuesta.
+
 Contexto del sistema (úsalo para evaluar la gravedad):
 {contexto_espacio}
 """
