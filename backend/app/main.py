@@ -7,15 +7,22 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth.dependencias import CABECERA_CSRF, METODOS_SEGUROS
+
 from app.ai.proveedor import ErrorProveedor
 from app.auth.dependencias import autorizar
 from app.config import catalogos, settings
 from app.config import reglas as cfg
 from app.db import crear_tablas, engine
-from app.rules.base import NoAutenticadoError, NoEncontradoError, PermisoError, ReglaNegocioError
+from app.rules.base import (
+    DemasiadosIntentosError,
+    NoAutenticadoError,
+    NoEncontradoError,
+    PermisoError,
+    ReglaNegocioError,
+)
 
 log = logging.getLogger("campus-ops")
-
 
 
 @asynccontextmanager
@@ -36,14 +43,44 @@ app = FastAPI(
     title="Campus Ops — Sistema Central de Gestión Operativa",
     lifespan=lifespan,
     dependencies=[Depends(autorizar)],
+    # En producción no se publica la documentación interactiva de la API.
+    docs_url=None if settings.ES_PRODUCCION else "/docs",
+    redoc_url=None if settings.ES_PRODUCCION else "/redoc",
+    openapi_url=None if settings.ES_PRODUCCION else "/openapi.json",
 )
+
+# CORS restrictivo: solo el frontend configurado, con credenciales (cookie de sesión).
+ORIGENES_PERMITIDOS = {settings.CORS_ORIGIN.rstrip("/"), settings.APP_URL}
+if not settings.ES_PRODUCCION:
+    # Vite en desarrollo puede abrirse como localhost o como 127.0.0.1.
+    ORIGENES_PERMITIDOS |= {"http://localhost:5173", "http://127.0.0.1:5173"}
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.CORS_ORIGIN, "http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=sorted(ORIGENES_PERMITIDOS),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+    allow_headers=["Content-Type", CABECERA_CSRF],
 )
+
+
+@app.middleware("http")
+async def _seguridad_http(request: Request, call_next):
+    """Rechaza escrituras desde otros orígenes (CSRF, también en login) y añade cabeceras de seguridad."""
+    origen = request.headers.get("origin")
+    if (
+        request.method not in METODOS_SEGUROS
+        and origen
+        and origen.rstrip("/") not in ORIGENES_PERMITIDOS | {f"{request.url.scheme}://{request.url.netloc}"}
+    ):
+        return JSONResponse(status_code=403, content={"codigo": "AUTH-ORIGEN", "mensaje": "Origen no permitido."})
+    respuesta = await call_next(request)
+    respuesta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    respuesta.headers.setdefault("X-Frame-Options", "DENY")
+    respuesta.headers.setdefault("Referrer-Policy", "same-origin")
+    if request.url.path.startswith(("/api/auth", "/api/admin")):
+        respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
 
 
 # ---------- Manejadores de errores: nunca stack traces al cliente ----------
@@ -56,12 +93,21 @@ async def _regla(request: Request, exc: ReglaNegocioError):
 
 @app.exception_handler(NoAutenticadoError)
 async def _no_autenticado(request: Request, exc: NoAutenticadoError):
-    return JSONResponse(status_code=401, content={"codigo": "AUTH-401", "mensaje": str(exc)})
+    return JSONResponse(status_code=401, content={"codigo": exc.codigo, "mensaje": str(exc)})
 
 
 @app.exception_handler(PermisoError)
 async def _sin_permiso(request: Request, exc: PermisoError):
-    return JSONResponse(status_code=403, content={"codigo": "AUTH-403", "mensaje": str(exc)})
+    return JSONResponse(status_code=403, content={"codigo": exc.codigo, "mensaje": str(exc)})
+
+
+@app.exception_handler(DemasiadosIntentosError)
+async def _demasiados_intentos(request: Request, exc: DemasiadosIntentosError):
+    return JSONResponse(
+        status_code=429,
+        content={"codigo": exc.codigo, "mensaje": str(exc)},
+        headers={"Retry-After": str(exc.reintentar_en_s)},
+    )
 
 
 @app.exception_handler(NoEncontradoError)
@@ -69,12 +115,27 @@ async def _no_encontrado(request: Request, exc: NoEncontradoError):
     return JSONResponse(status_code=404, content={"codigo": "ERR-404", "mensaje": str(exc)})
 
 
+# Mensajes legibles para los formatos de los formularios de acceso (el resto usa el de Pydantic).
+MENSAJES_FORMATO = {
+    "email": "El correo electrónico no tiene un formato válido.",
+    "usuario": "Usa de 3 a 32 caracteres: letras, números, punto, guion o guion bajo.",
+}
+
+
+def _mensaje_validacion(campo: str, error: dict) -> str:
+    if error["type"] == "string_pattern_mismatch" and campo in MENSAJES_FORMATO:
+        return MENSAJES_FORMATO[campo]
+    if error["type"] == "extra_forbidden":
+        return "Campo no permitido."
+    return error["msg"]
+
+
 @app.exception_handler(RequestValidationError)
 async def _validacion(request: Request, exc: RequestValidationError):
-    detalles = [
-        {"campo": ".".join(str(p) for p in e["loc"][1:]), "mensaje": e["msg"]}
-        for e in exc.errors()
-    ]
+    detalles = []
+    for e in exc.errors():
+        campo = ".".join(str(p) for p in e["loc"][1:])
+        detalles.append({"campo": campo, "mensaje": _mensaje_validacion(campo, e)})
     return JSONResponse(
         status_code=422,
         content={"codigo": "ERR-422", "mensaje": "Datos inválidos", "detalles": detalles},
@@ -126,9 +187,10 @@ def get_reglas():
 
 
 # Los routers de cada módulo se registran aquí (una línea por módulo):
-from app.api import auth, datos, espacios, incidencias, recursos  # noqa: E402
+from app.api import admin, auth, datos, espacios, incidencias, recursos  # noqa: E402
 
 app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(datos.router)
 app.include_router(espacios.router)
 app.include_router(recursos.router)

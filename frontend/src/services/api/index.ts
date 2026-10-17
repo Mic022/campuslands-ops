@@ -9,6 +9,7 @@
  * - reservasApi: /api/reservas
  * - prestamosApi: /api/prestamos
  * - incidenciasApi: /api/incidencias y /api/incidencias/triaje
+ * - authApi / adminApi: /api/auth y /api/admin
  */
 
 export * from './baseClient'
@@ -19,3 +20,4 @@ export * from './recursosApi'
 export * from './reservasApi'
 export * from './prestamosApi'
 export * from './incidenciasApi'
+export * from './authApi'

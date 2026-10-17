@@ -16,7 +16,7 @@ import type { IncidenciaApi } from './api/incidenciasApi'
 import type { RecursoApi } from './api/recursosApi'
 import type { ReservaApi } from './api/reservasApi'
 import { ENDPOINTS } from './endpoints'
-import { esAdmin, leerSesion, mismaPersona, nombreSesion } from './sesion'
+import { esAdmin, mismaPersona, nombreSesion } from './sesion'
 import { SALAS_GEOMETRIA } from '../data/torreZenithNivel6'
 import type {
   Nivel6Estado,
@@ -193,7 +193,8 @@ export const reservasApi = {
 
 /** Compatibilidad con los componentes: el "token de operador" es la sesión de un admin. */
 export const tokenAdmin = {
-  leer: () => (esAdmin() ? leerSesion()?.token ?? null : null),
+  // La sesión viaja en una cookie HttpOnly: aquí solo se indica si hay sesión de admin.
+  leer: () => (esAdmin() ? 'sesion-admin' : null),
   guardar: (_token: string | null) => undefined
 }
 

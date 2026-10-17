@@ -11,10 +11,19 @@ ROLES = {ROL_ADMIN, ROL_USUARIO}
 # Sin iniciar sesión.
 PUBLICAS = {
     ("GET", "/api/health"),
-    ("POST", "/api/auth/login"),
     ("GET", "/api/catalogos"),
     ("GET", "/api/reglas"),
+    ("GET", "/api/auth/politica"),
+    ("POST", "/api/auth/login"),
+    ("POST", "/api/auth/logout"),          # revoca la sesión si la hay; nunca falla
+    ("POST", "/api/auth/registro"),        # siempre crea rol 'usuario'
+    ("POST", "/api/auth/recuperar"),
+    ("POST", "/api/auth/restablecer"),
 }
+
+# Toda ruta bajo este prefijo es solo para administradores, esté o no en SOLO_ADMIN
+# (defensa en profundidad: una ruta nueva de administración no queda abierta por olvido).
+PREFIJO_ADMIN = "/api/admin/"
 
 # Solo administradores.
 SOLO_ADMIN = {
@@ -27,6 +36,10 @@ SOLO_ADMIN = {
     ("PATCH", "/api/incidencias/{incidencia_id}"),
     ("GET", "/api/datos/reporte"),
     ("GET", "/api/auditoria"),
+    ("GET", "/api/admin/usuarios"),
+    ("POST", "/api/admin/usuarios"),
+    ("PATCH", "/api/admin/usuarios/{usuario}"),
+    ("POST", "/api/admin/usuarios/{usuario}/desbloquear"),
 }
 
 # Un usuario solo puede actuar a su propio nombre (el admin puede hacerlo por cualquiera):

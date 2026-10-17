@@ -1,9 +1,7 @@
 /**
  * Cliente HTTP base para la comunicación con el backend FastAPI (/api).
- * Agrega el token de sesión, maneja serialización, errores {codigo, mensaje} y status codes.
- * Un 401 cierra la sesión (vuelve al login); un 403 se muestra como mensaje.
+ * Maneja serialización, captura de errores {codigo, mensaje} y status codes.
  */
-import { expirarSesion, leerSesion } from '../sesion'
 
 export class ApiError extends Error {
   codigo: string
@@ -19,15 +17,34 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Sesión: el navegador envía solo la cookie HttpOnly (el JS no puede leerla). El token CSRF
+ * vive únicamente en memoria y se adjunta en cada método que escribe.
+ */
+const METODOS_SEGUROS = new Set(['GET', 'HEAD', 'OPTIONS'])
+let tokenCsrf: string | null = null
+
+export const csrf = {
+  poner(token: string | null) {
+    tokenCsrf = token
+  },
+  cabecera(metodo = 'GET'): Record<string, string> {
+    return tokenCsrf && !METODOS_SEGUROS.has(metodo.toUpperCase()) ? { 'X-CSRF-Token': tokenCsrf } : {}
+  }
+}
+
+/** Evento global: una petición protegida respondió 401 (sesión caducada, revocada o inexistente). */
+export const EVENTO_SESION_EXPIRADA = 'campus:sesion-expirada'
+
 export async function pedir<T>(ruta: string, init: RequestInit = {}): Promise<T> {
-  const token = leerSesion()?.token
   let res: Response
   try {
     res = await fetch(`/api${ruta}`, {
       ...init,
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...csrf.cabecera(init.method),
         ...(init.headers || {})
       }
     })
@@ -35,8 +52,11 @@ export async function pedir<T>(ruta: string, init: RequestInit = {}): Promise<T>
     throw new ApiError(0, 'RED', 'No hay conexión con el servidor backend.')
   }
 
+  if (res.status === 204) return undefined as T
   const cuerpo = await res.json().catch(() => null)
-  if (res.status === 401 && ruta !== '/auth/login') expirarSesion()
+  if (res.status === 401 && !ruta.startsWith('/auth/')) {
+    window.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA, { detail: cuerpo?.codigo }))
+  }
   if (!res.ok) {
     if (!cuerpo || res.status === 502 || res.status === 504) {
       throw new ApiError(res.status, 'RED', 'El servidor backend no está disponible.')

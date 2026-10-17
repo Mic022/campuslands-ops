@@ -11,8 +11,6 @@ import {
   EstadoRecurso
 } from './types/domain'
 import { ApiError, apiClient } from './services/apiClient'
-import { alExpirarSesion, guardarSesion, leerSesion, Sesion } from './services/sesion'
-import { LoginScreen } from './components/auth/LoginScreen'
 import { Navbar, TabType } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { StarfieldBackground } from './components/ui/StarfieldBackground'
@@ -30,31 +28,18 @@ import { IncidentReportModal } from './components/features/incidents/IncidentRep
 import { JuryRulesInspector } from './components/features/live-jury/JuryRulesInspector'
 import { DataLoadReport } from './components/features/datos/DataLoadReport'
 import { AvisoError, EstadoCarga } from './components/ui/EstadoDatos'
+import { AdminUsuarios } from './components/features/admin/AdminUsuarios'
+import { useAuth } from './auth/AuthContext'
+import { navegar, RutaPrivada } from './auth/rutas'
 import { Building2, Laptop, Sparkles, Sliders, Orbit } from 'lucide-react'
 
 type Fuente = 'reglas' | 'espacios' | 'recursos' | 'reservas' | 'prestamos' | 'incidencias'
 
-/** Sin sesión se muestra el login; un 401 del backend devuelve aquí. */
-export default function App() {
-  const [sesion, setSesion] = useState<Sesion | null>(leerSesion)
-
-  useEffect(() => alExpirarSesion(() => setSesion(null)) as () => void, [])
-
-  if (!sesion) return <LoginScreen onEntrar={setSesion} />
-  return (
-    <Campus
-      key={sesion.usuario.usuario}
-      sesion={sesion}
-      onSalir={() => {
-        guardarSesion(null)
-        setSesion(null)
-      }}
-    />
-  )
-}
-
-function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
-  const [activeTab, setActiveTab] = useState<TabType>('3d-twin')
+export default function App({ ruta }: { ruta: RutaPrivada }) {
+  // Raiz solo monta App con una sesión válida; /admin además exige rol admin.
+  const { usuario, esAdmin } = useAuth()
+  const [pestana, setPestana] = useState<TabType>('3d-twin')
+  const activeTab: TabType = ruta === '/admin' ? 'admin' : pestana
 
   // Datos principales: todos vienen del backend (no hay datos de demostración).
   const [espacios, setEspacios] = useState<Espacio[]>([])
@@ -256,7 +241,12 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
 
   const visorRef = useRef<HTMLDivElement>(null)
   const irAPestana = (tab: TabType) => {
-    setActiveTab(tab)
+    // La administración tiene su propia URL (/admin) para poder protegerla como ruta.
+    if (tab === 'admin') navegar('/admin')
+    else {
+      setPestana(tab)
+      if (ruta === '/admin') navegar('/')
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -276,8 +266,7 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
           setIsReportOpen(true)
         }}
         incidenciasCriticasCount={incidenciasCriticasCount}
-        usuario={sesion.usuario}
-        onSalir={onSalir}
+        esAdmin={esAdmin}
       />
 
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -317,7 +306,9 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-8"
             >
-              {!config && <EstadoCarga cargando={cargando} error={errores.reglas} onReintentar={cargarTodo} />}
+              {!config && activeTab !== 'admin' && <EstadoCarga cargando={cargando} error={errores.reglas} onReintentar={cargarTodo} />}
+
+              {activeTab === 'admin' && esAdmin && <AdminUsuarios onToast={addToast} />}
 
               {config && activeTab === 'spaces' && (
                 <>
@@ -439,7 +430,7 @@ function Campus({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
                   />
                   <JuryRulesInspector config={config} />
                   {/* Evidencia de la carga de datos oficiales (el endpoint es solo para administradores). */}
-                  {sesion.usuario.rol === 'admin' && <DataLoadReport />}
+                  {esAdmin && <DataLoadReport />}
                 </>
               )}
             </motion.div>

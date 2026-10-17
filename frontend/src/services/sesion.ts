@@ -1,46 +1,27 @@
 /**
- * Sesión del usuario (token + datos públicos). Se guarda en sessionStorage:
- * dura lo que la pestaña y nunca va en el código.
+ * Datos públicos de la persona con sesión (nombre y rol), solo en memoria.
+ *
+ * La sesión real vive en el servidor y viaja en una cookie HttpOnly que el JavaScript no puede
+ * leer: aquí no se guarda ningún token ni nada en localStorage/sessionStorage. AuthContext
+ * rellena estos datos con GET /api/auth/yo al cargar la app y los borra al cerrar sesión.
+ * El backend vuelve a comprobar el rol en cada petición; esto solo decide qué se muestra.
  */
-export type Rol = 'admin' | 'usuario'
+import type { Rol, UsuarioSesion } from './api/authApi'
 
-export interface UsuarioSesion {
-  usuario: string
-  nombre: string
-  rol: Rol
-}
+export type { Rol, UsuarioSesion }
 
-export interface Sesion {
-  token: string
-  usuario: UsuarioSesion
-}
-
-const CLAVE = 'campus-ops.sesion'
-let enMemoria: Sesion | null = null
+let actual: UsuarioSesion | null = null
 const oyentes = new Set<() => void>()
 
-export function leerSesion(): Sesion | null {
-  if (enMemoria) return enMemoria
-  try {
-    const crudo = sessionStorage.getItem(CLAVE)
-    enMemoria = crudo ? (JSON.parse(crudo) as Sesion) : null
-  } catch {
-    enMemoria = null
-  }
-  return enMemoria
+export function leerSesion(): { usuario: UsuarioSesion } | null {
+  return actual ? { usuario: actual } : null
 }
 
-export function guardarSesion(sesion: Sesion | null) {
-  enMemoria = sesion
-  try {
-    if (sesion) sessionStorage.setItem(CLAVE, JSON.stringify(sesion))
-    else sessionStorage.removeItem(CLAVE)
-  } catch {
-    // sin almacenamiento: la sesión vive solo en memoria
-  }
+export function guardarSesion(usuario: UsuarioSesion | null) {
+  actual = usuario
 }
 
-/** Se llama cuando el backend responde 401: la sesión venció o no es válida. */
+/** Avisos de sesión caducada (los dispara AuthContext cuando el backend responde 401). */
 export function alExpirarSesion(fn: () => void) {
   oyentes.add(fn)
   return () => oyentes.delete(fn)
@@ -51,8 +32,8 @@ export function expirarSesion() {
   oyentes.forEach(fn => fn())
 }
 
-export const esAdmin = () => leerSesion()?.usuario.rol === 'admin'
-export const nombreSesion = () => leerSesion()?.usuario.nombre ?? ''
+export const esAdmin = () => actual?.rol === 'admin'
+export const nombreSesion = () => actual?.nombre ?? ''
 
 /** Misma persona aunque cambien mayúsculas, tildes o espacios ("  Ana " = "ana"). */
 export const mismaPersona = (a?: string | null, b?: string | null) => {

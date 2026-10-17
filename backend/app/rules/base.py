@@ -24,9 +24,32 @@ class NoEncontradoError(Exception):
     """Entidad inexistente; la API responde 404."""
 
 
-class NoAutenticadoError(Exception):
-    """Falta el token o no es válido; la API responde 401."""
+class _ErrorConCodigo(Exception):
+    codigo = "ERR"
+
+    def __init__(self, mensaje: str, codigo: str | None = None):
+        super().__init__(mensaje)
+        if codigo:
+            self.codigo = codigo
 
 
-class PermisoError(Exception):
+class NoAutenticadoError(_ErrorConCodigo):
+    """Sin sesión, sesión caducada/revocada o credenciales inválidas; la API responde 401."""
+
+    codigo = "AUTH-401"
+
+
+class PermisoError(_ErrorConCodigo):
     """El usuario no tiene permiso para esta acción; la API responde 403."""
+
+    codigo = "AUTH-403"
+
+
+class DemasiadosIntentosError(_ErrorConCodigo):
+    """Límite de intentos superado (fuerza bruta); la API responde 429 con Retry-After."""
+
+    codigo = "AUTH-429"
+
+    def __init__(self, mensaje: str, reintentar_en_s: int):
+        super().__init__(mensaje)
+        self.reintentar_en_s = reintentar_en_s

@@ -6,10 +6,22 @@
  */
 
 export const ENDPOINTS = {
-  // Sesión
+  // Autenticación (sesión por cookie HttpOnly + token CSRF)
   AUTH: {
+    POLITICA: '/auth/politica',
     LOGIN: '/auth/login',
+    LOGOUT: '/auth/logout',
     YO: '/auth/yo',
+    REGISTRO: '/auth/registro',
+    RECUPERAR: '/auth/recuperar',
+    RESTABLECER: '/auth/restablecer',
+  },
+
+  // Administración de cuentas (solo rol admin; el backend lo verifica en cada petición)
+  ADMIN: {
+    USUARIOS: '/admin/usuarios',
+    USUARIO: (usuario: string) => `/admin/usuarios/${encodeURIComponent(usuario)}`,
+    DESBLOQUEAR: (usuario: string) => `/admin/usuarios/${encodeURIComponent(usuario)}/desbloquear`,
   },
 
   // Salud y Configuración de Reglas de Negocio
@@ -63,4 +75,12 @@ export const ENDPOINTS = {
     RESOLVER: (id: string | number) => `/incidencias/${id}`,
   },
 
+  // Módulo 01 · Torre Zenith (Gemelo Digital)
+  NIVEL6: {
+    ESTADO: '/nivel6/estado',
+    REGLAS: '/nivel6/reglas',
+    RESERVAS: '/nivel6/reservas',
+    SALAS: '/nivel6/salas',
+    RESERVA_CANCELAR: (id: string | number) => `/nivel6/reservas/${id}/cancelar`,
+  }
 } as const

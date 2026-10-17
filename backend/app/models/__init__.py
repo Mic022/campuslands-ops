@@ -108,8 +108,44 @@ class LlamadaIA(SQLModel, table=True):
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
-    usuario: str = Field(primary_key=True)             # nombre de inicio de sesión
+    usuario: str = Field(primary_key=True)             # nombre de inicio de sesión (minúsculas)
     nombre: str                                        # con el que figura como solicitante y en la auditoría
     rol: str                                           # config/permisos.py: admin | usuario
-    clave_hash: str                                    # PBKDF2; nunca la clave en claro
+    clave_hash: str                                    # Argon2id (o PBKDF2 heredado); nunca la clave en claro
     activo: bool = True
+    # Columnas agregadas por app/migraciones.py en bases existentes (por eso todas admiten NULL).
+    email: str | None = Field(default=None, unique=True, index=True)   # minúsculas; para recuperar la clave
+    intentos_fallidos: int | None = 0
+    bloqueado_hasta: datetime | None = None
+    ultimo_acceso: datetime | None = None
+    creado_en: datetime | None = Field(default_factory=ahora)
+
+
+class Sesion(SQLModel, table=True):
+    """Sesión del servidor. La cookie lleva un token aleatorio; aquí solo se guarda su SHA-256."""
+
+    __tablename__ = "sesiones"
+
+    id: int | None = Field(default=None, primary_key=True)
+    token_hash: str = Field(unique=True, index=True)
+    csrf_token: str                                    # token sincronizador para métodos que escriben
+    usuario: str = Field(foreign_key="usuarios.usuario", index=True)
+    recordar: bool = False
+    creada_en: datetime = Field(default_factory=ahora)
+    ultima_actividad: datetime = Field(default_factory=ahora)
+    expira_en: datetime
+    revocada_en: datetime | None = None
+    ip: str | None = None
+
+
+class TokenRecuperacion(SQLModel, table=True):
+    """Enlace de recuperación de contraseña: un solo uso y con caducidad. Solo se guarda el hash."""
+
+    __tablename__ = "tokens_recuperacion"
+
+    id: int | None = Field(default=None, primary_key=True)
+    token_hash: str = Field(unique=True, index=True)
+    usuario: str = Field(foreign_key="usuarios.usuario", index=True)
+    creado_en: datetime = Field(default_factory=ahora)
+    expira_en: datetime
+    usado_en: datetime | None = None

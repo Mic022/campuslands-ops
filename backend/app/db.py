@@ -22,8 +22,10 @@ def _activar_foreign_keys(dbapi_conn, _):
 
 def crear_tablas() -> None:
     import app.models  # noqa: F401  registra los modelos en el metadata
+    from app.migraciones import migrar
 
     SQLModel.metadata.create_all(engine)
+    migrar(engine)  # columnas nuevas en tablas que ya tenían datos
 
 
 def get_session() -> Iterator[Session]:
